@@ -33,6 +33,7 @@
 import QtQuick 2.9
 import org.asteroid.controls 1.0
 import org.nemomobile.lipstick 0.1
+import Nemo.Configuration 1.0
 
 ListView {
     id: appsListView
@@ -45,10 +46,20 @@ ListView {
     property bool toLeftAllowed:   true
     property bool toRightAllowed:  false
     property int currentPos: 0
+    property int savedPos: 0
+
+    ConfigurationValue {
+        id: itemIndex
+        key: "/launcher/item-index"
+        defaultValue: 0
+    }
 
     onCurrentPosChanged: {
         toLeftAllowed = (currentPos!=launcherModel.itemCount-1)
         toRightAllowed  = (currentPos!=0)
+
+        // Save item index in case the launcher gets killed.
+        itemIndex.value = currentPos
 
         rightIndicator.animate()
         leftIndicator.animate()
@@ -60,7 +71,9 @@ ListView {
 
     delegate: LauncherItemDelegate {
         id: launcherItem
-        width: appsListView.width
+        // In onCompleted the width of appsListView is zero, we need it to be non-zero
+        // in order to make positionViewAtIndex work
+        width: appsListView.width == 0 ? 1 : appsListView.width
         height: appsListView.width
         iconName: model.object.iconId == "" ? "ios-help" : model.object.iconId
         iconCaption: model.object.title.toUpperCase() + localeManager.changesObserver
@@ -68,14 +81,21 @@ ListView {
     }
 
     Component.onCompleted: {
-        launcherCenterColor = alb.centerColor(launcherModel.get(0).filePath);
-        launcherOuterColor = alb.outerColor(launcherModel.get(0).filePath);
+        currentPos = itemIndex.value
+        savedPos = currentPos
+        launcherCenterColor = alb.centerColor(launcherModel.get(savedPos).filePath);
+        launcherOuterColor = alb.outerColor(launcherModel.get(savedPos).filePath);
+        // When moving the view to a different index we get that savedPos becomes 0,0.
+        // This means that when we flick left the contentX becomes negative.
+        // This results in the first iitem being index -savedPos.
+        // To fix this we add savedPos to make the first item at index zero.
+        positionViewAtIndex(savedPos, ListView.Visible)
     }
 
     onContentXChanged: {
-        var lowerStop = Math.floor(contentX/appsListView.width)
+        var lowerStop = Math.floor(contentX/appsListView.width) + savedPos
         var upperStop = lowerStop+1
-        var ratio = (contentX%appsListView.width)/appsListView.width
+        var ratio = ((contentX + savedPos*appsListView.width)%appsListView.width)/appsListView.width
 
         if(upperStop + 1 > launcherModel.itemCount || ratio == 0) {
             launcherCenterColor = alb.centerColor(launcherModel.get(lowerStop).filePath);
