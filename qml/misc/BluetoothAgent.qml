@@ -30,6 +30,7 @@
 import QtQuick 2.9
 import org.asteroid.controls 1.0
 import org.nemomobile.lipstick 0.1
+import Nemo.KeepAlive 1.1
 
 Item {
     id: btAgent
@@ -237,5 +238,9 @@ Item {
                     break;
             }
         }
+    }
+
+    Component.onCompleted: {
+        DisplayBlanking.preventBlanking = true
     }
 }
