@@ -32,6 +32,7 @@
 
 import QtQuick 2.9
 import QtQuick.Window 2.1
+import QtMultimedia 5.4
 import org.nemomobile.lipstick 0.1
 import org.asteroid.controls 1.0
 import org.asteroid.utils 1.0
@@ -42,6 +43,11 @@ Item {
     id: root
     anchors.fill: parent
     rotation: Screen.angleBetween(Screen.primaryScreen, Lipstick.compositor.screenOrientation)
+
+    Audio {
+        id: notificationSound
+        source: "file:///usr/share/sounds/notification.wav"
+    }
 
     Item {
         id: homeLayer
@@ -208,6 +214,7 @@ Item {
                 parent = homeLayer
             } else if (isNotificationWindow) {
                 parent = notificationLayer
+                notificationSound.play()
             } else if (isAgentWindow) {
                 parent = agentLayer
             } else {
