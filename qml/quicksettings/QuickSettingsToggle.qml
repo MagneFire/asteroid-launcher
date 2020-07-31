@@ -33,7 +33,7 @@ import org.asteroid.controls 1.0
 MouseArea {
     id: ma
 
-    width: parent.width/3
+    width: parent.width/4
     height: width
 
     property alias icon : ic.name

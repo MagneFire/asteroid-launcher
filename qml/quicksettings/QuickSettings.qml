@@ -35,6 +35,7 @@ import org.nemomobile.systemsettings 1.0
 import Nemo.Ngf 1.0
 import org.asteroid.controls 1.0
 import org.asteroid.utils 1.0
+import Connman 0.2
 
 Item {
     id: rootitem
@@ -103,11 +104,31 @@ Item {
 
     QuickSettingsToggle {
         id: bluetoothToggle
-        anchors.centerIn: parent
         icon: btStatus.connected ? "ios-bluetooth-connected" : "ios-bluetooth"
         onChecked:   btStatus.powered = true
         onUnchecked: btStatus.powered = false
         Component.onCompleted: toggled = btStatus.powered
+
+        anchors.left: brightnessToggle.right
+        anchors.verticalCenter: rootitem.verticalCenter
+    }
+
+    NetworkTechnology {
+        id: wifiStatus
+        path: "/net/connman/technology/wifi"
+        onPoweredChanged: wifiToggle.toggled = wifiStatus.powered
+    }
+
+    QuickSettingsToggle {
+        id: wifiToggle
+        icon:        wifiStatus.connected ? "ios-wifi" : "ios-wifi-outline"
+        onChecked:   wifiStatus.powered = true
+        onUnchecked: wifiStatus.powered = false
+        Component.onCompleted: toggled = wifiStatus.powered
+
+        anchors.left: bluetoothToggle.right
+        anchors.right: hapticsToggle.left
+        anchors.verticalCenter: rootitem.verticalCenter
     }
 
     NonGraphicalFeedback {
