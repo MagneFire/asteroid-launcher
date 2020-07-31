@@ -42,14 +42,11 @@ ListView {
     property bool fakePressed:     false
     property bool toTopAllowed:    false
     property bool toBottomAllowed: false
-    property bool toLeftAllowed:   true
-    property bool toRightAllowed:  false
+    property bool toLeftAllowed:   !atXEnd
+    property bool toRightAllowed:  !atXBeginning
     property int currentPos: 0
 
     onCurrentPosChanged: {
-        toLeftAllowed = (currentPos!=launcherModel.itemCount-1)
-        toRightAllowed  = (currentPos!=0)
-
         rightIndicator.animate()
         leftIndicator.animate()
         topIndicator.animate()
