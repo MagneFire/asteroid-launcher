@@ -52,8 +52,7 @@ MouseArea {
     Icon {
         id: icon
         anchors.centerIn: parent
-        anchors.verticalCenterOffset: -Dims.h(3)
-        width: Dims.w(31)
+        width: launcherItem.width * 0.6
         height: width
         color: "#666666"
     }
@@ -61,11 +60,11 @@ MouseArea {
     Label {
         id: iconText
         anchors.top: icon.bottom
-        width: Dims.w(50)
+        width: launcherItem.width
         horizontalAlignment: Text.AlignHCenter
         anchors.topMargin: Dims.h(4)
         anchors.horizontalCenter: parent.horizontalCenter
-        color: "#666666"
+        color: "#ffffff"
         font.pixelSize: Dims.l(5)
         font.weight: Font.Medium
     }
