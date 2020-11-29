@@ -34,15 +34,16 @@ import QtQuick 2.9
 import org.asteroid.controls 1.0
 import org.nemomobile.lipstick 0.1
 
-ListView {
-    id: appsListView
-    orientation: ListView.Horizontal
-    snapMode: ListView.SnapToItem
+GridView {
+    id: appsView
+    flow: GridView.FlowTopToBottom
+    snapMode: GridView.SnapToRow
+    cellHeight: appsView.height/2
+    cellWidth: appsView.width/2
 
     preferredHighlightBegin: width /2 - currentItem.width /2
     preferredHighlightEnd: width /2 + currentItem.width /2
-    highlightRangeMode: ListView.StrictlyEnforceRange
-    contentY: -(width / 2 - (width / 4))
+    highlightRangeMode: GridView.StrictlyEnforceRange
 
     property bool fakePressed:     false
     property bool toTopAllowed:    false
@@ -62,11 +63,11 @@ ListView {
 
     delegate: LauncherItemDelegate {
         id: launcherItem
-        width: appsListView.width / 2
-        height: appsListView.width / 2
+        width: appsView.width / 2
+        height: appsView.width / 2
         iconName: model.object.iconId == "" ? "ios-help" : model.object.iconId
         iconCaption: model.object.title.toUpperCase() + localeManager.changesObserver
-        enabled: !appsListView.dragging
+        enabled: !appsView.dragging
     }
 
     Component.onCompleted: {
@@ -75,9 +76,9 @@ ListView {
     }
 
     onContentXChanged: {
-        var lowerStop = Math.floor(contentX/appsListView.width)
+        var lowerStop = Math.floor(contentX/appsView.width)
         var upperStop = lowerStop+1
-        var ratio = (contentX%appsListView.width)/appsListView.width
+        var ratio = (contentX%appsView.width)/appsView.width
 
         if(upperStop + 1 > launcherModel.itemCount || ratio == 0) {
             launcherCenterColor = alb.centerColor(launcherModel.get(lowerStop).filePath);

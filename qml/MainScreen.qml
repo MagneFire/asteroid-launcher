@@ -203,14 +203,19 @@ Item {
         Component.onCompleted: {
             addPanel(0, 0, centerPanel)
             var al = addPanel(0, 1, bottomPanel)
-            addPanel(1, 0, rightPanel)
+            var ev = addPanel(1, 0, rightPanel)
             var np = addPanel(-1, 0, leftPanel)
-            addPanel(0, -1, topPanel)
+            var qs = addPanel(0, -1, topPanel)
 
             rightIndicator.visible  = Qt.binding(function() { return ((grid.toLeftAllowed   || (grid.currentVerticalPos == 1 && al.toLeftAllowed )) && !displayAmbient)})
             leftIndicator.visible   = Qt.binding(function() { return ((grid.toRightAllowed  || (grid.currentVerticalPos == 1 && al.toRightAllowed)) && (!displayAmbient || !np.modelEmpty))})
             topIndicator.visible    = Qt.binding(function() { return (grid.toBottomAllowed && !displayAmbient)   })
             bottomIndicator.visible = Qt.binding(function() { return (grid.toTopAllowed  && !displayAmbient)})
+
+            qs.visible     = Qt.binding(function() { return (!displayAmbient)})
+            np.visible     = Qt.binding(function() { return (!displayAmbient)})
+            al.visible     = Qt.binding(function() { return (!displayAmbient)})
+            ev.visible     = Qt.binding(function() { return (!displayAmbient)})
 
             leftIndicator.keepExpanded = Qt.binding(function() { return !np.modelEmpty && grid.currentHorizontalPos == 0 && grid.currentVerticalPos == 0 })
 

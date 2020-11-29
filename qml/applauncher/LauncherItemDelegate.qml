@@ -43,15 +43,18 @@ MouseArea {
     onClicked: model.object.launchApplication()
 
     Image {
-        anchors.fill: parent
+        width: parent.width
+        height: parent.height
         source: launcherItem.pressed | fakePressed ? "qrc:/images/diskBackgroundPressed.svg" : "qrc:/images/diskBackground.svg"
         sourceSize.width: width
         sourceSize.height: height
+        y: (index % 2) ? Dims.h(1) : -Dims.h(1)
     }
 
     Icon {
         id: icon
         anchors.centerIn: parent
+        anchors.verticalCenterOffset: (index % 2) ? Dims.h(1) : -Dims.h(1)
         width: launcherItem.width * 0.6
         height: width
         color: "#666666"
@@ -59,10 +62,12 @@ MouseArea {
 
     Label {
         id: iconText
-        anchors.top: icon.bottom
+        anchors.top: (index % 2) ? undefined : icon.bottom
+        anchors.bottom: (index % 2) ? icon.top : undefined
         width: launcherItem.width
         horizontalAlignment: Text.AlignHCenter
-        anchors.topMargin: Dims.h(4)
+        anchors.topMargin: (index % 2) ? 0 : Dims.h(3)
+        anchors.bottomMargin: (index % 2) ? Dims.h(3) : 0
         anchors.horizontalCenter: parent.horizontalCenter
         color: "#ffffff"
         font.pixelSize: Dims.l(5)
