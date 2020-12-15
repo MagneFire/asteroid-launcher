@@ -48,13 +48,13 @@ MouseArea {
         source: launcherItem.pressed | fakePressed ? "qrc:/images/diskBackgroundPressed.svg" : "qrc:/images/diskBackground.svg"
         sourceSize.width: width
         sourceSize.height: height
-        y: (index % 2) ? Dims.h(1) : -Dims.h(1)
+        y: -Dims.h(1)
     }
 
     Icon {
         id: icon
         anchors.centerIn: parent
-        anchors.verticalCenterOffset: (index % 2) ? Dims.h(1) : -Dims.h(1)
+        anchors.verticalCenterOffset: -Dims.h(1)
         width: launcherItem.width * 0.6
         height: width
         color: "#666666"
@@ -62,12 +62,10 @@ MouseArea {
 
     Label {
         id: iconText
-        anchors.top: (index % 2) ? undefined : icon.bottom
-        anchors.bottom: (index % 2) ? icon.top : undefined
+        anchors.top: icon.bottom
         width: launcherItem.width
         horizontalAlignment: Text.AlignHCenter
-        anchors.topMargin: (index % 2) ? 0 : Dims.h(3)
-        anchors.bottomMargin: (index % 2) ? Dims.h(3) : 0
+        anchors.topMargin: Dims.h(3)
         anchors.horizontalCenter: parent.horizontalCenter
         color: "#ffffff"
         font.pixelSize: Dims.l(5)

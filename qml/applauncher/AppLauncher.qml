@@ -35,8 +35,10 @@ import org.asteroid.controls 1.0
 import org.nemomobile.lipstick 0.1
 
 GridView {
+    property QtObject panelsGrid
+
     id: appsView
-    flow: GridView.FlowTopToBottom
+    flow: GridView.FlowLeftToRight
     snapMode: GridView.SnapToRow
     cellHeight: appsView.height/2
     cellWidth: appsView.width/2
@@ -46,11 +48,14 @@ GridView {
     highlightRangeMode: GridView.StrictlyEnforceRange
 
     property bool fakePressed:     false
-    property bool toTopAllowed:    false
-    property bool toBottomAllowed: false
-    property bool toLeftAllowed:   !atXEnd
-    property bool toRightAllowed:  !atXBeginning
+    property bool toTopAllowed:    true
+    property bool toBottomAllowed: true
+    property bool toLeftAllowed:   false
+    property bool toRightAllowed:  false
+    property bool forbidTop: !atYBeginning
     property int currentPos: 0
+
+    onForbidTopChanged: panelsGrid.changeAllowedDirections()
 
     onCurrentPosChanged: {
         rightIndicator.animate()
@@ -75,10 +80,10 @@ GridView {
         launcherOuterColor = alb.outerColor(launcherModel.get(0).filePath);
     }
 
-    onContentXChanged: {
-        var lowerStop = Math.floor(contentX/appsView.width)
+    onContentYChanged: {
+        var lowerStop = Math.floor(contentY/appsView.height)
         var upperStop = lowerStop+1
-        var ratio = (contentX%appsView.width)/appsView.width
+        var ratio = (contentY%appsView.height)/appsView.height
 
         if(upperStop + 1 > launcherModel.itemCount || ratio == 0) {
             launcherCenterColor = alb.centerColor(launcherModel.get(lowerStop).filePath);

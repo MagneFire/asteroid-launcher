@@ -195,7 +195,7 @@ Item {
     Component { id: leftPanel;   NotificationsPanel { panelsGrid: grid } }
     Component { id: centerPanel; Loader             { source: watchFaceSource.value } }
     Component { id: rightPanel;  Today              { } }
-    Component { id: bottomPanel; AppLauncher        { } }
+    Component { id: bottomPanel; AppLauncher        { panelsGrid: grid} }
 
     PanelsGrid {
         id: grid 
@@ -209,8 +209,8 @@ Item {
 
             rightIndicator.visible  = Qt.binding(function() { return ((grid.toLeftAllowed   || (grid.currentVerticalPos == 1 && al.toLeftAllowed )) && !displayAmbient)})
             leftIndicator.visible   = Qt.binding(function() { return ((grid.toRightAllowed  || (grid.currentVerticalPos == 1 && al.toRightAllowed)) && (!displayAmbient || !np.modelEmpty))})
-            topIndicator.visible    = Qt.binding(function() { return (grid.toBottomAllowed && !displayAmbient)   })
-            bottomIndicator.visible = Qt.binding(function() { return (grid.toTopAllowed  && !displayAmbient)})
+            topIndicator.visible    = Qt.binding(function() { return ((grid.toBottomAllowed && !displayAmbient) || (grid.currentHorizontalPos == 0 && grid.currentVerticalPos == 1)) })
+            bottomIndicator.visible = Qt.binding(function() { return ((grid.toTopAllowed  && !displayAmbient) || (grid.currentHorizontalPos == 0 && grid.currentVerticalPos == 1 && !al.atYEnd))})
 
             qs.visible     = Qt.binding(function() { return (!displayAmbient)})
             np.visible     = Qt.binding(function() { return (!displayAmbient)})
