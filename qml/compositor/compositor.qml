@@ -208,6 +208,7 @@ Item {
 
         onWindowAdded: {
             var isHomeWindow = window.isInProcess && comp.homeWindow == null && window.title === "Home"
+            var isInputWindow = window.title === "maliit-server"
             var isDialogWindow = window.category === "dialog"
             var isNotificationWindow = window.category == "notification"
             var isAgentWindow = window.category == "agent"
@@ -230,7 +231,7 @@ Item {
                 Desktop.desktop.aboutToOpen = Qt.binding(function() {return !homeActive && !appLayer.ready })
                 comp.homeWindow = w
                 setCurrentWindow(homeWindow)
-            } else if (!isNotificationWindow && !isAgentWindow && !isDialogWindow) {
+            } else if (!isNotificationWindow && !isAgentWindow && !isDialogWindow && !isInputWindow) {
                 if (topmostApplicationWindow != null) {
                     Lipstick.compositor.closeClientForWindowId(topmostApplicationWindow.window.windowId)
                 }
