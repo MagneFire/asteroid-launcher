@@ -33,6 +33,7 @@
 #include <QScreen>
 #include <QQmlEngine>
 #include <QQmlContext>
+#include <QSurfaceFormat>
 #include <QTranslator>
 
 #include <lipstickqmlpath.h>
@@ -54,6 +55,24 @@ int main(int argc, char **argv)
     FirstRun *firstRun = new FirstRun();
     LauncherLocaleManager *launcherLocaleManager = new LauncherLocaleManager();
     QObject::connect(app.localeManager(), SIGNAL(localeChanged()), launcherLocaleManager, SLOT(onLocaleChanged()));
+
+
+    // Set default surface format before creating the window
+    QSurfaceFormat surfaceFormat;
+    surfaceFormat.setStencilBufferSize(8);
+    surfaceFormat.setDepthBufferSize(24);
+    // surfaceFormat.setDepthBufferSize(0);
+    // if (options.multisample)
+        // surfaceFormat.setSamples(16);
+        // surfaceFormat.setSamples(2);
+    // if (options.transparent)
+        // surfaceFormat.setAlphaBufferSize(8);
+    // if (options.coreProfile) {
+    //     surfaceFormat.setVersion(4, 1);
+    //     surfaceFormat.setProfile(QSurfaceFormat::CoreProfile);
+    // }
+    QSurfaceFormat::setDefaultFormat(surfaceFormat);
+
 
     QGuiApplication::setFont(QFont("Noto Sans"));
     app.setCompositorPath("qrc:/qml/compositor.qml");

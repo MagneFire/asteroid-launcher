@@ -71,9 +71,9 @@ Item {
             property int hour: 0
 
             anchors.fill: parent
-            antialiasing: true
-            smooth: true
-            renderStrategy: Canvas.Cooperative
+            // antialiasing: true
+            // smooth: true
+            // renderStrategy: Canvas.Cooperative
 
             onPaint: {
                 var ctx = getContext("2d")
@@ -90,9 +90,9 @@ Item {
             property int minute: 0
 
             anchors.fill: parent
-            antialiasing: true
-            smooth: true
-            renderStrategy: Canvas.Cooperative
+            // antialiasing: true
+            // smooth: true
+            // renderStrategy: Canvas.Cooperative
 
             onPaint: {
                 var ctx = getContext("2d")
@@ -109,9 +109,9 @@ Item {
             property bool am: false
 
             anchors.fill: parent
-            antialiasing: true
-            smooth: true
-            renderStrategy: Canvas.Cooperative
+            // antialiasing: true
+            // smooth: true
+            // renderStrategy: Canvas.Cooperative
             visible: use12H.value
 
             onPaint: {
@@ -130,9 +130,9 @@ Item {
             property int month: 0
 
             anchors.fill: parent
-            antialiasing: true
-            smooth: true
-            renderStrategy: Canvas.Cooperative
+            // antialiasing: true
+            // smooth: true
+            // renderStrategy: Canvas.Cooperative
 
             onPaint: {
                 var ctx = getContext("2d")
