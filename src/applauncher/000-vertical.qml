@@ -284,8 +284,17 @@ Item {
                 var visibleIndex = Math.round(appsListView.contentY / appsListView.height)
                 root.persistentLaunchIndex = visibleIndex
 
-                grid.moveTo(0, targetVerticalPos)
+                contentAnim.to = -grid.panelHeight*targetVerticalPos
+                contentAnim.start()
             }
+        }
+
+        NumberAnimation {
+            id: contentAnim
+            target: grid
+            property: "contentY"
+            duration: 100
+            onStopped: grid.currentVerticalPos = topEdgeSwipeArea.targetVerticalPos
         }
     }
 }
