@@ -19,8 +19,6 @@ Item {
     id: root
     property alias currentIndex: appsListView.currentIndex
     property alias count: appsListView.count
-    property int lastLaunchedIndex: 0
-    property int persistentLaunchIndex: 0
 
     anchors.fill: parent
 
@@ -44,13 +42,6 @@ Item {
             bottomIndicator.animate()
         }
 
-        onCurrentIndexChanged: {
-            // Update the persistentLaunchIndex when user scrolls to a new position
-            if (grid.currentVerticalPos === 1) {  // Only when in the launcher view
-                root.persistentLaunchIndex = currentIndex
-            }
-        }
-
         onAtYBeginningChanged: {
             if ((grid.currentHorizontalPos === 0) && (grid.currentVerticalPos === 1)) {
                 forbidTop = !atYBeginning
@@ -61,28 +52,10 @@ Item {
         Connections {
             target: grid
             function onCurrentVerticalPosChanged() {
-                if (grid.currentVerticalPos === 0) {
-                    appsListView.highlightMoveDuration = 0
-                    appsListView.currentIndex = 0
-                    // Check if we're leaving the app launcher from top position
-                    if (appsListView.atYBeginning) {
-                        // Set persistent index to 0 when exiting from top position
-                        root.persistentLaunchIndex = 0
-                    }
-                } else if (grid.currentVerticalPos === 1) {
+                if (grid.currentVerticalPos === 1) {
                     appsListView.highlightMoveDuration = 1500
                     forbidTop = !appsListView.atYBeginning
                     grid.changeAllowedDirections()
-
-                    // Use either the persistent index or the last launched one
-                    var targetIndex = (root.persistentLaunchIndex > 0) ?
-                                    root.persistentLaunchIndex : root.lastLaunchedIndex;
-
-                    if (targetIndex > 0) {
-                        appsListView.positionViewAtIndex(targetIndex, ListView.Center)
-                    } else {
-                        appsListView.positionViewAtIndex(0, ListView.Beginning)
-                    }
                 }
             }
         }
@@ -96,11 +69,7 @@ Item {
             height: width
             enabled: !appsListView.dragging
 
-            onClicked: {
-                root.lastLaunchedIndex = index
-                root.persistentLaunchIndex = index  // Save to the persistent property too
-                model.object.launchApplication()
-            }
+            onClicked: model.object.launchApplication()
 
             DropShadow {
                 anchors.fill: circleWrapper
@@ -262,8 +231,6 @@ Item {
                 var currentPanelY = -grid.currentVerticalPos*grid.panelHeight
                 contentY = Math.max(contentY, currentPanelY + -grid.panelHeight)
                 grid.contentY = contentY
-
-                root.lastLaunchedIndex = 0
             }
         }
 
@@ -279,10 +246,6 @@ Item {
                 if ((loc < -grid.height/2 && deltaY < 0) || deltaY < -10) {
                     targetVerticalPos++
                 }
-
-                // Calculate and store the current visible index before leaving
-                var visibleIndex = Math.round(appsListView.contentY / appsListView.height)
-                root.persistentLaunchIndex = visibleIndex
 
                 contentAnim.to = -grid.panelHeight*targetVerticalPos
                 contentAnim.start()
