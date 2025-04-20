@@ -245,6 +245,8 @@ Item {
 
         property real startY: 0
         property bool swipeTriggered: false
+        property real deltaY: 0
+        property int targetVerticalPos: 0
 
         onPressed: {
             startY = point1.y
@@ -252,7 +254,7 @@ Item {
         }
 
         onUpdated: {
-            var deltaY = point1.y - startY
+            deltaY = point1.y - startY
             if (swipeTriggered || (Math.abs(deltaY) > 20 && deltaY > 0)) {
                 swipeTriggered = true
 
@@ -268,10 +270,21 @@ Item {
         onReleased: {
             if (swipeTriggered) {
                 swipeTriggered = false
+
+                var loc = grid.contentY+grid.currentVerticalPos*grid.panelHeight
+                targetVerticalPos = grid.currentVerticalPos
+                if ((loc > grid.height/2 && deltaY > 0) || deltaY > 10) {
+                    targetVerticalPos--
+                }
+                if ((loc < -grid.height/2 && deltaY < 0) || deltaY < -10) {
+                    targetVerticalPos++
+                }
+
                 // Calculate and store the current visible index before leaving
                 var visibleIndex = Math.round(appsListView.contentY / appsListView.height)
                 root.persistentLaunchIndex = visibleIndex
-                grid.moveTo(0, 0)
+
+                grid.moveTo(0, targetVerticalPos)
             }
         }
     }
