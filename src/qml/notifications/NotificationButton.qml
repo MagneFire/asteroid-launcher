@@ -35,14 +35,15 @@ MouseArea {
 
     Rectangle {
         anchors.fill: parent
-        radius: height/2
+        radius: height / 2
         color: parent.pressed ? "#99222222" : "#BB222222"
     }
 
     Label {
         id: content
+
         font.pixelSize: Dims.l(8)
         anchors.centerIn: parent
     }
-}
 
+}

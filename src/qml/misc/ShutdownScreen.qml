@@ -34,14 +34,17 @@ import org.nemomobile.lipstick 0.1
 
 Rectangle {
     id: shutdownWindow
+
     width: initialSize.width
     height: initialSize.height
     color: "black"
-    opacity: shutdownScreen.windowVisible ? 1.0 : 0.0
+    opacity: shutdownScreen.windowVisible ? 1 : 0
 
     Image {
-        property var logoSize: (parent.width > parent.height ? parent.height : parent.width) * 0.55
         id: logoSvg
+
+        property var logoSize: (parent.width > parent.height ? parent.height : parent.width) * 0.55
+
         anchors.fill: parent
         fillMode: Image.Pad
         source: "qrc:/images/bootlogo.svg"
@@ -52,5 +55,7 @@ Rectangle {
         NumberAnimation {
             duration: 500
         }
+
     }
+
 }

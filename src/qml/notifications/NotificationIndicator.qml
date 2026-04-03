@@ -28,25 +28,65 @@
  */
 
 import QtQuick 2.9
-import org.nemomobile.lipstick 0.1
 import org.asteroid.controls 1.0
+import org.nemomobile.lipstick 0.1
 
 Item {
     id: notifIndic
+
     property QtObject panelsGrid
     property real iconSize: height
     property int currentIndex
     property var icons: []
+
+    function addIcon(pos, item) {
+        if (iconComponent.status === Component.Ready) {
+            var icon = iconComponent.createObject(content);
+            icon.x = iconSize * pos;
+            icon.y = 0;
+            icon.width = iconSize;
+            icon.height = iconSize;
+            icon.notification = item;
+            icon.index = pos;
+            icons[pos] = icon;
+        }
+    }
+
+    function moveIcon(originPos, destPos) {
+        var icon = icons[originPos];
+        if (icon !== undefined) {
+            icons[destPos] = icon;
+            icon.x = iconSize * destPos;
+            icon.index = destPos;
+            icons[originPos] = undefined;
+        }
+    }
+
+    function removeIcon(pos) {
+        var icon = icons[pos];
+        if (icon !== undefined)
+            icon.destroy();
+
+        icons[pos] = undefined;
+    }
+
+    function moveTo(pos) {
+        content.x = notifIndic.width / 2 - iconSize / 2 - iconSize * pos;
+        currentIndex = pos;
+    }
+
     visible: false
 
     Item {
         id: content
-        x: notifIndic.width/2
-        
+
+        x: notifIndic.width / 2
+
         Rectangle {
             id: separator
+
             visible: notifModel.itemCount !== 0
-            x: iconSize*1.1
+            x: iconSize * 1.1
             width: 1
             height: iconSize
             color: "#8e8e8e"
@@ -58,107 +98,80 @@ Item {
             color: "#8e8e8e"
             width: iconSize
             height: iconSize
-            anchors.leftMargin: iconSize/10
+            anchors.leftMargin: iconSize / 10
             anchors.left: separator.right
         }
+
     }
 
     Component {
-        id: iconComponent;
+        id: iconComponent
+
         Icon {
             property QtObject notification
             property int index: 0
-            
+
+            function noicon(str) {
+                return str === "" || str === null || str === undefined;
+            }
+
             name: {
-                if(notification==null)
+                if (notification == null)
                     return "";
 
-                function noicon(str) {
-                    return str === "" || str === null || str === undefined;
-                }
-                if(noicon(notification.icon) && noicon(notification.appIcon))
+                if (noicon(notification.icon) && noicon(notification.appIcon))
                     return "ios-mail-outline";
-                if(noicon(notification.icon) && !noicon(notification.appIcon))
+
+                if (noicon(notification.icon) && !noicon(notification.appIcon))
                     return notification.appIcon;
-                if(!noicon(notification.icon) && noicon(notification.appIcon))
+
+                if (!noicon(notification.icon) && noicon(notification.appIcon))
                     return notification.icon;
 
                 return notification.icon;
             }
             color: index == notifIndic.currentIndex ? "#FFFFFF" : "#8e8e8e"
         }
-    }
 
-    function addIcon(pos, item) {
-        if (iconComponent.status === Component.Ready) {
-            var icon = iconComponent.createObject(content)
-            icon.x = iconSize*pos
-            icon.y = 0
-            icon.width = iconSize
-            icon.height = iconSize
-            icon.notification = item
-            icon.index = pos
-            icons[pos] = icon
-        }
-    }
-
-    function moveIcon(originPos, destPos) {
-        var icon = icons[originPos]
-        if(icon !== undefined) {
-            icons[destPos] = icon
-            icon.x = iconSize*destPos
-            icon.index = destPos
-            icons[originPos] = undefined
-        }
-    }
-
-    function removeIcon(pos) {
-        var icon = icons[pos]
-        if(icon !== undefined)
-            icon.destroy()
-        icons[pos] = undefined
-    }
-
-    function moveTo(pos) {
-        content.x = notifIndic.width/2 - iconSize/2 -iconSize*pos
-        currentIndex = pos
     }
 
     Connections {
-        target: panelsGrid
-
         function makeVisible() {
-            if((panelsGrid.currentVerticalPos == 0 && panelsGrid.currentHorizontalPos < 0) && !Lipstick.compositor.displayAmbient) {
-                notifIndic.visible = true
-                moveTo(panelsGrid.currentHorizontalPos+1)
-            } else
-                notifIndic.visible = false
+            if ((panelsGrid.currentVerticalPos == 0 && panelsGrid.currentHorizontalPos < 0) && !Lipstick.compositor.displayAmbient) {
+                notifIndic.visible = true;
+                moveTo(panelsGrid.currentHorizontalPos + 1);
+            } else {
+                notifIndic.visible = false;
+            }
         }
 
-        function onCurrentHorizontalPosChanged() { makeVisible() }
-        function onCurrentVerticalPosChanged() { makeVisible() }
+        function onCurrentHorizontalPosChanged() {
+            makeVisible();
+        }
+
+        function onCurrentVerticalPosChanged() {
+            makeVisible();
+        }
+
+        target: panelsGrid
     }
 
     NotificationListModel {
         id: notifModel
+
         onItemAdded: {
-            var index = notifModel.indexOf(item)
-
-            var leftIconIndex = notifModel.itemCount
-            while(leftIconIndex > index) {
-                moveIcon(-leftIconIndex+1, (-leftIconIndex))
-                leftIconIndex--
+            var index = notifModel.indexOf(item);
+            var leftIconIndex = notifModel.itemCount;
+            while (leftIconIndex > index) {
+                moveIcon(-leftIconIndex + 1, (-leftIconIndex));
+                leftIconIndex--;
             }
-
-            addIcon(-index, item)
+            addIcon(-index, item);
         }
-
         onRowsRemoved: {
-            for (var i = first ; i <= last; i++)
-                removeIcon(-i)
-
-            for (var i = last+1 ; i <= notifModel.itemCount+1; i++)
-                moveIcon(-i, -i+(last-first+1))
+            for (var i = first; i <= last; i++) removeIcon(-i)
+            for (var i = last + 1; i <= notifModel.itemCount + 1; i++) moveIcon(-i, -i + (last - first + 1))
         }
     }
+
 }

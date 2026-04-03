@@ -27,8 +27,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-import QtQuick 2.9
 import QtGraphicalEffects 1.12
+import QtQuick 2.9
 import org.asteroid.controls 1.0
 import org.nemomobile.lipstick 0.1
 
@@ -40,21 +40,26 @@ Item {
 
     Item {
         id: circleWrapper
+
         anchors.fill: parent
+
         Rectangle {
             id: circle
+
             anchors.centerIn: parent
-            width: parent.width*0.7
-            height: parent.height*0.7
-            radius: width/2
+            width: parent.width * 0.7
+            height: parent.height * 0.7
+            radius: width / 2
             color: "#f4f4f4"
         }
+
     }
+
     DropShadow {
         anchors.fill: circleWrapper
         horizontalOffset: 0
         verticalOffset: 0
-        radius: 8.0
+        radius: 8
         samples: 17
         color: "#80000000"
         source: circleWrapper
@@ -63,6 +68,7 @@ Item {
 
     Icon {
         id: icon
+
         anchors.centerIn: parent
         anchors.verticalCenterOffset: -Dims.h(20)
         width: Dims.w(20)
@@ -73,12 +79,15 @@ Item {
 
     Item {
         id: text
+
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: icon.bottom
         anchors.topMargin: Dims.h(3)
+
         Label {
             id: summary
+
             anchors.top: parent.top
             width: Dims.w(70)
             horizontalAlignment: Text.AlignHCenter
@@ -91,6 +100,7 @@ Item {
 
         Label {
             id: body
+
             anchors.top: summary.bottom
             width: Dims.w(70)
             height: Dims.h(10)
@@ -103,10 +113,12 @@ Item {
             elide: Text.ElideRight
             wrapMode: Text.Wrap
         }
+
     }
 
     TextField {
         id: inputField
+
         inputMethodHints: Qt.ImhDigitsOnly
         anchors.top: text.top
         anchors.horizontalCenter: parent.horizontalCenter
@@ -115,6 +127,7 @@ Item {
 
     IconButton {
         id: cancelButton
+
         iconColor: "#666666"
         iconName: "ios-close-circle-outline"
         anchors.horizontalCenter: parent.horizontalCenter
@@ -126,6 +139,7 @@ Item {
 
     IconButton {
         id: confirmButton
+
         iconColor: "#666666"
         iconName: "ios-checkmark-circle-outline"
         anchors.horizontalCenter: parent.horizontalCenter
@@ -133,16 +147,14 @@ Item {
         anchors.bottom: parent.bottom
         anchors.bottomMargin: Dims.h(21)
         onClicked: {
-            if(agent.state == BluetoothAgent.ReqPinCode)
-                agent.pinCode = Number(inputField.text)
-            if(agent.state == BluetoothAgent.ReqPasskey)
-                agent.passkey = inputField.text
-            agent.userAccepts()
-        }
-    }
+            if (agent.state == BluetoothAgent.ReqPinCode)
+                agent.pinCode = Number(inputField.text);
 
-    Behavior on opacity {
-        NumberAnimation { duration: 200 }
+            if (agent.state == BluetoothAgent.ReqPasskey)
+                agent.passkey = inputField.text;
+
+            agent.userAccepts();
+        }
     }
 
     HandWritingKeyboard {
@@ -150,107 +162,109 @@ Item {
     }
 
     Connections {
-        target: agent
         function onStateChanged() {
-            switch(agent.state) {
-                case BluetoothAgent.AuthService:
-                    //% "Authorize:"
-                    summary.text = qsTrId("id-btagent-authorize") + localeManager.changesObserver
-                    body.text = agent.pinCode
-                    text.visible = true
-                    inputField.text = ""
-                    inputField.previewText = ""
-                    inputField.visible = false
-                    cancelButton.visible = true
-                    confirmButton.visible = true
-                    break;
-
-                case BluetoothAgent.ReqAuthorization:
-                    //% "Authorize:"
-                    summary.text = qsTrId("id-btagent-authorize") + localeManager.changesObserver
-                    body.text = ""
-                    text.visible = true
-                    inputField.text = ""
-                    inputField.previewText = ""
-                    inputField.visible = false
-                    cancelButton.visible = true
-                    confirmButton.visible = true
-                    break;
-
-                case BluetoothAgent.ReqConfirmation:
-                    //% "Confirm:"
-                    summary.text = qsTrId("id-btagent-confirm") + localeManager.changesObserver
-                    body.text = ("000000" + agent.passkey).substr(-6,6)  // padded to 6 digits
-                    text.visible = true
-                    inputField.text = ""
-                    inputField.previewText = ""
-                    inputField.visible = false
-                    cancelButton.visible = true
-                    confirmButton.visible = true
-                    break;
-
-                case BluetoothAgent.DispPasskey:
-                    //% "Pass Key:"
-                    summary.text = qsTrId("id-btagent-passkey") + localeManager.changesObserver
-                    body.text = ("000000" + agent.passkey).substr(-6,6)  // padded to 6 digits
-                    text.visible = true
-                    inputField.text = ""
-                    inputField.previewText = ""
-                    inputField.visible = false
-                    cancelButton.visible = true
-                    confirmButton.visible = true
-                    break;
-
-                case BluetoothAgent.ReqPasskey:
-                    summary.text = ""
-                    body.text = ""
-                    text.visible = false
-                    inputField.text = ""
-                    //% "Enter Key"
-                    inputField.previewText = qsTrId("id-btagent-enterkey") + localeManager.changesObserver
-                    inputField.visible = true
-                    cancelButton.visible = true
-                    confirmButton.visible = true
-                    break;
-
-                case BluetoothAgent.DispPinCode:
-                    //% "PIN Code:"
-                    summary.text = qsTrId("id-btagent-pincode") + localeManager.changesObserver
-                    body.text = agent.pinCode
-                    text.visible = true
-                    inputField.text = ""
-                    inputField.previewText = ""
-                    inputField.visible = false
-                    cancelButton.visible = true
-                    confirmButton.visible = true
-                    break;
-
-                case BluetoothAgent.ReqPinCode:
-                    //% "PIN Code:"
-                    summary.text = qsTrId("id-btagent-pincode") + localeManager.changesObserver
-                    body.text = ""
-                    text.visible = false
-                    inputField.text = ""
-                    //% "Enter PIN Code"
-                    inputField.previewText = qsTrId("id-btagent-enter-pincode") + localeManager.changesObserver
-                    inputField.visible = true
-                    cancelButton.visible = true
-                    confirmButton.visible = true
-                    break;
-
-                case BluetoothAgent.Idle:
-                default:
-                    summary.text = ""
-                    body.text = ""
-                    text.visible = false
-                    inputField.text = ""
-                    inputField.previewText = ""
-                    inputField.visible = false
-                    cancelButton.visible = false
-                    confirmButton.visible = false
-                    agent.windowVisible = false
-                    break;
+            switch (agent.state) {
+            case BluetoothAgent.AuthService:
+                //% "Authorize:"
+                summary.text = qsTrId("id-btagent-authorize") + localeManager.changesObserver;
+                body.text = agent.pinCode;
+                text.visible = true;
+                inputField.text = "";
+                inputField.previewText = "";
+                inputField.visible = false;
+                cancelButton.visible = true;
+                confirmButton.visible = true;
+                break;
+            case BluetoothAgent.ReqAuthorization:
+                //% "Authorize:"
+                summary.text = qsTrId("id-btagent-authorize") + localeManager.changesObserver;
+                body.text = "";
+                text.visible = true;
+                inputField.text = "";
+                inputField.previewText = "";
+                inputField.visible = false;
+                cancelButton.visible = true;
+                confirmButton.visible = true;
+                break;
+            case BluetoothAgent.ReqConfirmation:
+                //% "Confirm:"
+                summary.text = qsTrId("id-btagent-confirm") + localeManager.changesObserver;
+                body.text = ("000000" + agent.passkey).substr(-6, 6); // padded to 6 digits
+                text.visible = true;
+                inputField.text = "";
+                inputField.previewText = "";
+                inputField.visible = false;
+                cancelButton.visible = true;
+                confirmButton.visible = true;
+                break;
+            case BluetoothAgent.DispPasskey:
+                //% "Pass Key:"
+                summary.text = qsTrId("id-btagent-passkey") + localeManager.changesObserver;
+                body.text = ("000000" + agent.passkey).substr(-6, 6); // padded to 6 digits
+                text.visible = true;
+                inputField.text = "";
+                inputField.previewText = "";
+                inputField.visible = false;
+                cancelButton.visible = true;
+                confirmButton.visible = true;
+                break;
+            case BluetoothAgent.ReqPasskey:
+                summary.text = "";
+                body.text = "";
+                text.visible = false;
+                inputField.text = "";
+                //% "Enter Key"
+                inputField.previewText = qsTrId("id-btagent-enterkey") + localeManager.changesObserver;
+                inputField.visible = true;
+                cancelButton.visible = true;
+                confirmButton.visible = true;
+                break;
+            case BluetoothAgent.DispPinCode:
+                //% "PIN Code:"
+                summary.text = qsTrId("id-btagent-pincode") + localeManager.changesObserver;
+                body.text = agent.pinCode;
+                text.visible = true;
+                inputField.text = "";
+                inputField.previewText = "";
+                inputField.visible = false;
+                cancelButton.visible = true;
+                confirmButton.visible = true;
+                break;
+            case BluetoothAgent.ReqPinCode:
+                //% "PIN Code:"
+                summary.text = qsTrId("id-btagent-pincode") + localeManager.changesObserver;
+                body.text = "";
+                text.visible = false;
+                inputField.text = "";
+                //% "Enter PIN Code"
+                inputField.previewText = qsTrId("id-btagent-enter-pincode") + localeManager.changesObserver;
+                inputField.visible = true;
+                cancelButton.visible = true;
+                confirmButton.visible = true;
+                break;
+            case BluetoothAgent.Idle:
+            default:
+                summary.text = "";
+                body.text = "";
+                text.visible = false;
+                inputField.text = "";
+                inputField.previewText = "";
+                inputField.visible = false;
+                cancelButton.visible = false;
+                confirmButton.visible = false;
+                agent.windowVisible = false;
+                break;
             }
         }
+
+        target: agent
     }
+
+    Behavior on opacity {
+        NumberAnimation {
+            duration: 200
+        }
+
+    }
+
 }

@@ -31,67 +31,114 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-import QtQuick 2.9
 import QtGraphicalEffects 1.12
+import QtQuick 2.9
 import org.asteroid.controls 1.0
 
 ListView {
     id: appsListView
+
+    property int currentPos: 0
+
     orientation: ListView.Horizontal
     snapMode: ListView.SnapToItem
     anchors.fill: parent
     clip: true
-
     preferredHighlightBegin: width / 2 - currentItem.width / 2
     preferredHighlightEnd: width / 2 + currentItem.width / 2
     highlightRangeMode: ListView.StrictlyEnforceRange
     contentY: -(width / 2 - (width / 4))
-
-    property int currentPos: 0
-
     onCurrentPosChanged: {
-        rightIndicator.animate()
-        leftIndicator.animate()
-        topIndicator.animate()
-        bottomIndicator.animate()
+        rightIndicator.animate();
+        leftIndicator.animate();
+        topIndicator.animate();
+        bottomIndicator.animate();
+    }
+    model: launcherModel
+    Component.onCompleted: {
+        launcherCenterColor = alb.centerColor(launcherModel.get(0).filePath);
+        launcherOuterColor = alb.outerColor(launcherModel.get(0).filePath);
+        toLeftAllowed = Qt.binding(function() {
+            return !atXEnd;
+        });
+        toRightAllowed = Qt.binding(function() {
+            return !atXBeginning;
+        });
+        toTopAllowed = false;
+        toBottomAllowed = true;
+        forbidTop = false;
+        forbidBottom = false;
+        forbidLeft = false;
+        forbidRight = false;
+        launcherColorOverride = false;
+        if (grid.currentVerticalPos === 1)
+            grid.changeAllowedDirections();
+
+    }
+    onContentXChanged: {
+        var w = (appsListView.width / 2);
+        var lowerStop = Math.floor((contentX + w / 2) / w);
+        var upperStop = lowerStop + 1;
+        var ratio = ((contentX + w / 2) % w) / w;
+        if (upperStop + 1 > launcherModel.itemCount || ratio == 0) {
+            launcherCenterColor = alb.centerColor(launcherModel.get(lowerStop).filePath);
+            launcherOuterColor = alb.outerColor(launcherModel.get(lowerStop).filePath);
+            return ;
+        }
+        if (lowerStop < 0) {
+            launcherCenterColor = alb.centerColor(launcherModel.get(0).filePath);
+            launcherOuterColor = alb.outerColor(launcherModel.get(0).filePath);
+            return ;
+        }
+        var upperCenterColor = alb.centerColor(launcherModel.get(upperStop).filePath);
+        var lowerCenterColor = alb.centerColor(launcherModel.get(lowerStop).filePath);
+        launcherCenterColor = Qt.rgba(upperCenterColor.r * ratio + lowerCenterColor.r * (1 - ratio), upperCenterColor.g * ratio + lowerCenterColor.g * (1 - ratio), upperCenterColor.b * ratio + lowerCenterColor.b * (1 - ratio));
+        var upperOuterColor = alb.outerColor(launcherModel.get(upperStop).filePath);
+        var lowerOuterColor = alb.outerColor(launcherModel.get(lowerStop).filePath);
+        launcherOuterColor = Qt.rgba(upperOuterColor.r * ratio + lowerOuterColor.r * (1 - ratio), upperOuterColor.g * ratio + lowerOuterColor.g * (1 - ratio), upperOuterColor.b * ratio + lowerOuterColor.b * (1 - ratio));
+        currentPos = Math.round(lowerStop + ratio);
     }
 
     Connections {
-        target: grid
         function onCurrentVerticalPosChanged() {
-            if (grid.currentVerticalPos === 1) {
-                grid.changeAllowedDirections()
-            }
-        }
-    }
+            if (grid.currentVerticalPos === 1)
+                grid.changeAllowedDirections();
 
-    model: launcherModel
+        }
+
+        target: grid
+    }
 
     delegate: MouseArea {
         id: launcherItem
+
         width: appsListView.width / 2
         height: width
         enabled: !appsListView.dragging
-
         onClicked: model.object.launchApplication()
 
         Item {
             id: circleWrapper
+
             anchors.fill: parent
+
             Rectangle {
                 id: circle
+
                 anchors.centerIn: parent
                 width: parent.width * 0.8
                 height: width
-                radius: width/2
+                radius: width / 2
                 color: launcherItem.pressed | fakePressed ? "#cccccc" : "#f4f4f4"
             }
+
         }
+
         DropShadow {
             anchors.fill: circleWrapper
             horizontalOffset: 0
             verticalOffset: 0
-            radius: 8.0
+            radius: 8
             samples: 12
             color: "#80000000"
             source: circleWrapper
@@ -100,6 +147,7 @@ ListView {
 
         Icon {
             id: icon
+
             anchors.centerIn: parent
             width: parent.width * 0.6
             height: width
@@ -109,6 +157,7 @@ ListView {
 
         Label {
             id: iconText
+
             anchors.top: icon.bottom
             width: parent.width
             horizontalAlignment: Text.AlignHCenter
@@ -120,72 +169,18 @@ ListView {
             font.letterSpacing: parent.width * 0.002
             text: model.object.title.toUpperCase() + localeManager.changesObserver
             layer.enabled: true
+
             layer.effect: DropShadow {
                 transparentBorder: true
                 horizontalOffset: 0
                 verticalOffset: 0
-                radius: 3.0
+                radius: 3
                 samples: 3
                 color: "#80000000"
             }
+
         }
+
     }
 
-    Component.onCompleted: {
-        launcherCenterColor = alb.centerColor(launcherModel.get(0).filePath);
-        launcherOuterColor = alb.outerColor(launcherModel.get(0).filePath);
-
-        toLeftAllowed = Qt.binding(function() { return !atXEnd })
-        toRightAllowed = Qt.binding(function() { return !atXBeginning })
-
-        toTopAllowed = false
-        toBottomAllowed = true
-        forbidTop = false
-        forbidBottom = false
-        forbidLeft = false
-        forbidRight = false
-        launcherColorOverride = false
-        if (grid.currentVerticalPos === 1) {
-            grid.changeAllowedDirections()
-        }
-    }
-
-    onContentXChanged: {
-        var w = (appsListView.width / 2)
-        var lowerStop = Math.floor((contentX + w/2) / w)
-        var upperStop = lowerStop + 1
-        var ratio = ((contentX + w/2)%w)/w
-
-        if(upperStop + 1 > launcherModel.itemCount || ratio == 0) {
-            launcherCenterColor = alb.centerColor(launcherModel.get(lowerStop).filePath);
-            launcherOuterColor = alb.outerColor(launcherModel.get(lowerStop).filePath);
-            return;
-        }
-
-        if(lowerStop < 0) {
-            launcherCenterColor = alb.centerColor(launcherModel.get(0).filePath);
-            launcherOuterColor = alb.outerColor(launcherModel.get(0).filePath);
-            return;
-        }
-
-        var upperCenterColor = alb.centerColor(launcherModel.get(upperStop).filePath);
-        var lowerCenterColor = alb.centerColor(launcherModel.get(lowerStop).filePath);
-
-        launcherCenterColor = Qt.rgba(
-                    upperCenterColor.r * ratio + lowerCenterColor.r * (1-ratio),
-                    upperCenterColor.g * ratio + lowerCenterColor.g * (1-ratio),
-                    upperCenterColor.b * ratio + lowerCenterColor.b * (1-ratio)
-                );
-
-        var upperOuterColor = alb.outerColor(launcherModel.get(upperStop).filePath);
-        var lowerOuterColor = alb.outerColor(launcherModel.get(lowerStop).filePath);
-
-        launcherOuterColor = Qt.rgba(
-                    upperOuterColor.r * ratio + lowerOuterColor.r * (1-ratio),
-                    upperOuterColor.g * ratio + lowerOuterColor.g * (1-ratio),
-                    upperOuterColor.b * ratio + lowerOuterColor.b * (1-ratio)
-                );
-
-        currentPos = Math.round(lowerStop+ratio)
-    }
 }

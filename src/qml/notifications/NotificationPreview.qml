@@ -35,14 +35,83 @@ import org.nemomobile.lipstick 0.1
 
 Item {
     id: notificationWindow
+
     width: initialSize.width
     height: initialSize.height
 
     MouseArea {
         id: notificationArea
+
         anchors.fill: parent
         enabled: state == "show"
         onClicked: notificationArea.state = "hide"
+        states: [
+            State {
+                name: "show"
+
+                PropertyChanges {
+                    target: notificationArea
+                    opacity: 1
+                }
+
+                StateChangeScript {
+                    name: "notificationShown"
+                    script: {
+                        notificationTimer.start();
+                    }
+                }
+
+            },
+            State {
+                name: "hide"
+
+                PropertyChanges {
+                    target: notificationArea
+                    opacity: 0
+                }
+
+                StateChangeScript {
+                    name: "notificationHidden"
+                    script: {
+                        notificationTimer.stop();
+                        notificationPreviewPresenter.showNextNotification();
+                    }
+                }
+
+            }
+        ]
+        transitions: [
+            Transition {
+                to: "show"
+
+                SequentialAnimation {
+                    OpacityAnimator {
+                        duration: 300
+                    }
+
+                    ScriptAction {
+                        scriptName: "notificationShown"
+                    }
+
+                }
+
+            },
+            Transition {
+                to: "hide"
+
+                SequentialAnimation {
+                    OpacityAnimator {
+                        duration: 300
+                    }
+
+                    ScriptAction {
+                        scriptName: "notificationHidden"
+                    }
+
+                }
+
+            }
+        ]
 
         Rectangle {
             anchors.fill: parent
@@ -57,6 +126,11 @@ Item {
 
             Icon {
                 id: icon
+
+                function noicon(str) {
+                    return str === "" || str === null || str === undefined;
+                }
+
                 anchors.top: parent.top
                 anchors.topMargin: Dims.iconButtonMargin
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -65,17 +139,16 @@ Item {
                 color: "#FFFFFF"
                 name: {
                     var notif = notificationPreviewPresenter.notification;
-                    if(notif==null)
+                    if (notif == null)
                         return "";
 
-                    function noicon(str) {
-                        return str === "" || str === null || str === undefined;
-                    }
-                    if(noicon(notif.icon) && noicon(notif.appIcon))
+                    if (noicon(notif.icon) && noicon(notif.appIcon))
                         return "ios-mail-outline";
-                    if(noicon(notif.icon) && !noicon(notif.appIcon))
+
+                    if (noicon(notif.icon) && !noicon(notif.appIcon))
                         return notif.appIcon;
-                    if(!noicon(notif.icon) && noicon(notif.appIcon))
+
+                    if (!noicon(notif.icon) && noicon(notif.appIcon))
                         return notif.icon;
 
                     return notif.icon;
@@ -84,6 +157,7 @@ Item {
 
             Label {
                 id: summary
+
                 anchors.top: icon.bottom
                 height: text == "" ? 0 : undefined
                 width: Dims.w(90)
@@ -100,6 +174,7 @@ Item {
 
             Label {
                 id: body
+
                 anchors.top: summary.bottom
                 width: Dims.w(80)
                 horizontalAlignment: Text.AlignHCenter
@@ -114,65 +189,25 @@ Item {
                 wrapMode: Text.Wrap
                 text: notificationPreviewPresenter.notification != null ? notificationPreviewPresenter.notification.previewBody : ""
             }
+
         }
-
-        states: [
-            State {
-                name: "show"
-                PropertyChanges {
-                    target: notificationArea
-                    opacity: 1
-                }
-                StateChangeScript {
-                    name: "notificationShown"
-                    script: {
-                        notificationTimer.start()
-                    }
-                }
-            },
-            State {
-                name: "hide"
-                PropertyChanges {
-                    target: notificationArea
-                    opacity: 0
-                }
-                StateChangeScript {
-                    name: "notificationHidden"
-                    script: {
-                        notificationTimer.stop()
-                        notificationPreviewPresenter.showNextNotification()
-                    }
-                }
-            }
-        ]
-
-        transitions: [
-            Transition {
-                to: "show"
-                SequentialAnimation {
-                    OpacityAnimator { duration: 300 }
-                    ScriptAction { scriptName: "notificationShown" }
-                }
-            },
-            Transition {
-                to: "hide"
-                SequentialAnimation {
-                    OpacityAnimator { duration: 300 }
-                    ScriptAction { scriptName: "notificationHidden" }
-                }
-            }
-        ]
 
         Timer {
             id: notificationTimer
+
             interval: 5000
             repeat: false
             onTriggered: notificationArea.state = "hide"
         }
 
         Connections {
-            target: notificationPreviewPresenter;
-            function onNotificationChanged() { notificationArea.state = (notificationPreviewPresenter.notification != null) ? "show" : "hide" }
+            function onNotificationChanged() {
+                notificationArea.state = (notificationPreviewPresenter.notification != null) ? "show" : "hide";
+            }
+
+            target: notificationPreviewPresenter
         }
+
     }
+
 }

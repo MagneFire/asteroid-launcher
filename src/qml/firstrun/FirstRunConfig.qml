@@ -28,41 +28,101 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-import QtQuick 2.9
-import org.asteroid.controls 1.0
-import Nemo.Time 1.0
-import org.nemomobile.systemsettings 1.0
 import Nemo.Configuration 1.0
-import "desktop.js" as Desktop
 import Nemo.DBus 2.0
+import Nemo.Time 1.0
+import QtQuick 2.9
+import "desktop.js" as Desktop
+import org.asteroid.controls 1.0
+import org.nemomobile.systemsettings 1.0
 
 FlatMesh {
     id: config
+
+    property var timezoneList: []
+    property string pendingRegion: ""
+    property string currentTz: ""
+
+    function buildRegionModel() {
+        var allowlist = ["Africa", "America", "Antarctica", "Arctic", "Asia", "Atlantic", "Australia", "Europe", "Indian", "Pacific"];
+        regionModel.clear();
+        for (var i = 0; i < allowlist.length; i++) {
+            regionModel.append({
+                "name": allowlist[i],
+                "visualName": allowlist[i],
+                "isLeaf": false,
+                "fullPath": ""
+            });
+        }
+        regionModel.append({
+            "name": "Zulu",
+            "visualName": "Zulu",
+            "isLeaf": true,
+            "fullPath": "Zulu"
+        });
+        regionLV.positionViewAtIndex(5, ListView.SnapPosition);
+    }
+
+    function buildCityModel(region) {
+        cityModel.clear();
+        var prefix = region + "/";
+        var selectIdx = 0;
+        var count = 0;
+        for (var i = 0; i < timezoneList.length; i++) {
+            var tz = timezoneList[i];
+            if (tz.indexOf(prefix) === 0) {
+                var sub = tz.substring(prefix.length).replace(/_/g, " ");
+                cityModel.append({
+                    "fullPath": tz,
+                    "visualName": sub
+                });
+                if (tz === config.currentTz)
+                    selectIdx = count;
+
+                count++;
+            }
+        }
+        cityLV.positionViewAtIndex(selectIdx, ListView.SnapPosition);
+    }
+
     anchors.fill: parent
     centerColor: "#222222"
     outerColor: "#000000"
-
     Component.onCompleted: firstRun.startFirstRun()
+    state: "LANGUAGE"
+    onTimezoneListChanged: buildRegionModel()
+    states: [
+        State {
+            name: "LANGUAGE"
+        },
+        State {
+            name: "TIMEZONE_REGION"
+        },
+        State {
+            name: "TIMEZONE_CITY"
+        },
+        State {
+            name: "TIME"
+        },
+        State {
+            name: "DATE"
+        }
+    ]
 
     ConfigurationValue {
         id: use12H
+
         key: "/org/asteroidos/settings/use-12h-format"
         defaultValue: false
     }
 
-    state: "LANGUAGE"
+    LanguageModel {
+        id: langSettings
+    }
 
-    states: [
-        State { name: "LANGUAGE" },
-        State { name: "TIMEZONE_REGION" },
-        State { name: "TIMEZONE_CITY" },
-        State { name: "TIME" },
-        State { name: "DATE" }
-    ]
-
-    LanguageModel { id: langSettings }
     Spinner {
         id: langLV
+
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: title.bottom
@@ -70,29 +130,50 @@ FlatMesh {
         model: langSettings
         visible: config.state == "LANGUAGE"
         enabled: visible
-
-        delegate: SpinnerDelegate { text: langSettings.languageName(index) }
         Component.onCompleted: {
             var i = langSettings.currentIndex;
-            if(i != -1)
-                langLV.positionViewAtIndex(i, ListView.SnapPosition)
+            if (i != -1)
+                langLV.positionViewAtIndex(i, ListView.SnapPosition);
+
         }
+
+        delegate: SpinnerDelegate {
+            text: langSettings.languageName(index)
+        }
+
     }
 
-    DateTimeSettings { id: dtSettings }
-    WallClock { id: wallClock}
+    DateTimeSettings {
+        id: dtSettings
+    }
+
+    WallClock {
+        id: wallClock
+    }
+
     Row {
         id: timeSelector
+
+        property int spinnerWidth: use12H.value ? width / 3 : width / 2
+
         anchors.top: title.bottom
         height: Dims.h(60)
         width: parent.width
         visible: config.state == "TIME"
         enabled: visible
-
-        property int spinnerWidth: use12H.value ? width/3 : width/2
+        Component.onCompleted: {
+            var hour = wallClock.time.getHours();
+            if (use12H.value) {
+                amPmLV.currentIndex = hour / 12;
+                hour = hour % 12;
+            }
+            hourLV.currentIndex = hour;
+            minuteLV.currentIndex = wallClock.time.getMinutes();
+        }
 
         CircularSpinner {
             id: hourLV
+
             height: parent.height
             width: parent.spinnerWidth
             model: use12H.value ? 12 : 24
@@ -101,6 +182,7 @@ FlatMesh {
 
         CircularSpinner {
             id: minuteLV
+
             height: parent.height
             width: parent.spinnerWidth
             model: 60
@@ -109,102 +191,81 @@ FlatMesh {
 
         Spinner {
             id: amPmLV
+
             height: parent.height
             width: parent.spinnerWidth
             model: 2
-            delegate: SpinnerDelegate { text: index == 0 ? "AM" : "PM" }
+
+            delegate: SpinnerDelegate {
+                text: index == 0 ? "AM" : "PM"
+            }
+
         }
 
-        Component.onCompleted: {
-            var hour = wallClock.time.getHours();
-            if(use12H.value) {
-                amPmLV.currentIndex = hour / 12;
-                hour = hour % 12;
-            }
-            hourLV.currentIndex = hour;
-            minuteLV.currentIndex = wallClock.time.getMinutes();
-        }
     }
 
     Row {
         id: dateSelector
+
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: title.bottom
         height: Dims.h(60)
         visible: config.state == "DATE"
         enabled: visible
+        Component.onCompleted: {
+            var d = new Date();
+            dayLV.currentIndex = d.getDate() - 1;
+            monthLV.currentIndex = d.getMonth();
+            yearLV.currentIndex = d.getFullYear() - 2000;
+        }
 
         CircularSpinner {
             id: dayLV
+
             height: parent.height
-            width: parent.width/3
+            width: parent.width / 3
             model: 31
             showSeparator: true
-            delegate: SpinnerDelegate { text: index+1 }
+
+            delegate: SpinnerDelegate {
+                text: index + 1
+            }
+
         }
 
         CircularSpinner {
             id: monthLV
+
             height: parent.height
-            width: parent.width/3
+            width: parent.width / 3
             model: 12
             showSeparator: true
-            delegate: SpinnerDelegate { text: Qt.locale().monthName(index, Locale.ShortFormat) + localeManager.changesObserver }
+
+            delegate: SpinnerDelegate {
+                text: Qt.locale().monthName(index, Locale.ShortFormat) + localeManager.changesObserver
+            }
+
         }
 
         CircularSpinner {
             id: yearLV
+
             height: parent.height
-            width: parent.width/3
+            width: parent.width / 3
             model: 100
-            delegate: SpinnerDelegate { text: index+2000 }
-        }
 
-        Component.onCompleted: {
-            var d = new Date();
-            dayLV.currentIndex = d.getDate()-1;
-            monthLV.currentIndex = d.getMonth();
-            yearLV.currentIndex = d.getFullYear()-2000;
-        }
-    }
-
-    property var timezoneList: []
-    property string pendingRegion: ""
-    property string currentTz: ""
-
-    onTimezoneListChanged: buildRegionModel()
-
-    function buildRegionModel() {
-        var allowlist = ["Africa", "America", "Antarctica", "Arctic", "Asia", "Atlantic", "Australia", "Europe", "Indian", "Pacific"]
-        regionModel.clear()
-        for (var i = 0; i < allowlist.length; i++) {
-            regionModel.append({ "name": allowlist[i], "visualName": allowlist[i], "isLeaf": false, "fullPath": "" })
-        }
-        regionModel.append({ "name": "Zulu", "visualName": "Zulu", "isLeaf": true, "fullPath": "Zulu" })
-        regionLV.positionViewAtIndex(5, ListView.SnapPosition)
-    }
-
-    function buildCityModel(region) {
-        cityModel.clear()
-        var prefix = region + "/"
-        var selectIdx = 0
-        var count = 0
-        for (var i = 0; i < timezoneList.length; i++) {
-            var tz = timezoneList[i]
-            if (tz.indexOf(prefix) === 0) {
-                var sub = tz.substring(prefix.length).replace(/_/g, " ")
-                cityModel.append({ "fullPath": tz, "visualName": sub })
-                if (tz === config.currentTz)
-                    selectIdx = count
-                count++
+            delegate: SpinnerDelegate {
+                text: index + 2000
             }
+
         }
-        cityLV.positionViewAtIndex(selectIdx, ListView.SnapPosition)
+
     }
 
     DBusInterface {
         id: timedateDbus
+
         bus: DBus.SystemBus
         service: "org.freedesktop.timedate1"
         path: "/org/freedesktop/timedate1"
@@ -213,18 +274,22 @@ FlatMesh {
 
     ListModel {
         id: regionModel
+
         Component.onCompleted: {
-            config.currentTz = timedateDbus.getProperty("Timezone")
+            config.currentTz = timedateDbus.getProperty("Timezone");
             timedateDbus.call("ListTimezones", undefined, function(m) {
-                config.timezoneList = m
-            })
+                config.timezoneList = m;
+            });
         }
     }
 
-    ListModel { id: cityModel }
+    ListModel {
+        id: cityModel
+    }
 
     Spinner {
         id: regionLV
+
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: title.bottom
@@ -233,11 +298,15 @@ FlatMesh {
         visible: config.state == "TIMEZONE_REGION"
         enabled: visible
 
-        delegate: SpinnerDelegate { text: visualName }
+        delegate: SpinnerDelegate {
+            text: visualName
+        }
+
     }
 
     Spinner {
         id: cityLV
+
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: title.bottom
@@ -246,93 +315,103 @@ FlatMesh {
         visible: config.state == "TIMEZONE_CITY"
         enabled: visible
 
-        delegate: SpinnerDelegate { text: visualName }
+        delegate: SpinnerDelegate {
+            text: visualName
+        }
+
     }
 
     PageHeader {
         id: title
+
         //% "Language"
         text: qsTrId("id-language-page") + localeManager.changesObserver
     }
 
     IconButton {
         id: nextButton
+
         iconName: "ios-arrow-dropright"
-        anchors { 
+        onClicked: {
+            switch (config.state) {
+            case "LANGUAGE":
+                var locale = langSettings.locale(langLV.currentIndex);
+                langSettings.setSystemLocale(locale, LanguageModel.UpdateWithoutReboot);
+                localeManager.selectLocale(locale);
+                //% "Time Zone"
+                title.text = qsTrId("id-timezone-page") + localeManager.changesObserver;
+                config.state = "TIMEZONE_REGION";
+                break;
+            case "TIMEZONE_REGION":
+                var selectedEntry = regionModel.get(regionLV.currentIndex);
+                if (selectedEntry.isLeaf) {
+                    timedateDbus.typedCall("SetTimezone", [{
+                        "type": "s",
+                        "value": selectedEntry.fullPath
+                    }, {
+                        "type": "b",
+                        "value": false
+                    }], function(result) {
+                        console.log("FirstRunConfig: time zone set to", selectedEntry.fullPath);
+                    }, function(error, message) {
+                        console.log("FirstRunConfig: SetTimezone failed:", error, message);
+                    });
+                    //% "Time"
+                    title.text = qsTrId("id-time-page") + localeManager.changesObserver;
+                    config.state = "TIME";
+                } else {
+                    config.pendingRegion = selectedEntry.name;
+                    buildCityModel(config.pendingRegion);
+                    title.text = qsTrId("id-timezone-page") + localeManager.changesObserver;
+                    config.state = "TIMEZONE_CITY";
+                }
+                break;
+            case "TIMEZONE_CITY":
+                var tzName = cityModel.get(cityLV.currentIndex).fullPath;
+                timedateDbus.typedCall("SetTimezone", [{
+                    "type": "s",
+                    "value": tzName
+                }, {
+                    "type": "b",
+                    "value": false
+                }], function(result) {
+                    console.log("FirstRunConfig: time zone set to", tzName);
+                }, function(error, message) {
+                    console.log("FirstRunConfig: SetTimezone failed:", error, message);
+                });
+                //% "Time"
+                title.text = qsTrId("id-time-page") + localeManager.changesObserver;
+                config.state = "TIME";
+                break;
+            case "TIME":
+                var hour = hourLV.currentIndex;
+                if (use12H.value)
+                    hour += amPmLV.currentIndex * 12;
+
+                dtSettings.setTime(hour, minuteLV.currentIndex);
+                //% "Date"
+                title.text = qsTrId("id-date-page") + localeManager.changesObserver;
+                config.state = "DATE";
+                break;
+            case "DATE":
+                var date = new Date();
+                date.setDate(dayLV.currentIndex + 1);
+                date.setMonth(monthLV.currentIndex);
+                date.setFullYear(yearLV.currentIndex + 2000);
+                dtSettings.setDate(date);
+                config.destroy();
+                break;
+            default:
+                console.log("FirstRunConfig: Unhandled state detected");
+            }
+        }
+
+        anchors {
             bottom: parent.bottom
             horizontalCenter: parent.horizontalCenter
             bottomMargin: Dims.iconButtonMargin
         }
-        onClicked: {
-            switch(config.state) {
-                case "LANGUAGE":
-                    var locale = langSettings.locale(langLV.currentIndex)
-                    langSettings.setSystemLocale(locale, LanguageModel.UpdateWithoutReboot)
-                    localeManager.selectLocale(locale)
-                    
-                    //% "Time Zone"
-                    title.text = qsTrId("id-timezone-page") + localeManager.changesObserver
-                    
-                    config.state = "TIMEZONE_REGION";
-                    break;
-                case "TIMEZONE_REGION":
-                    var selectedEntry = regionModel.get(regionLV.currentIndex)
-                    if (selectedEntry.isLeaf) {
-                        timedateDbus.typedCall("SetTimezone", [
-                            { "type": "s", "value": selectedEntry.fullPath },
-                            { "type": "b", "value": false }
-                        ],
-                        function(result) { console.log("FirstRunConfig: time zone set to", selectedEntry.fullPath) },
-                        function(error, message) { console.log("FirstRunConfig: SetTimezone failed:", error, message) })
 
-                        //% "Time"
-                        title.text = qsTrId("id-time-page") + localeManager.changesObserver
-
-                        config.state = "TIME";
-                    } else {
-                        config.pendingRegion = selectedEntry.name
-                        buildCityModel(config.pendingRegion)
-                        title.text = qsTrId("id-timezone-page") + localeManager.changesObserver
-                        config.state = "TIMEZONE_CITY";
-                    }
-                    break;
-                case "TIMEZONE_CITY":
-                    var tzName = cityModel.get(cityLV.currentIndex).fullPath
-                    timedateDbus.typedCall("SetTimezone", [
-                        { "type": "s", "value": tzName },
-                        { "type": "b", "value": false }
-                    ],
-                    function(result) { console.log("FirstRunConfig: time zone set to", tzName) },
-                    function(error, message) { console.log("FirstRunConfig: SetTimezone failed:", error, message) })
-
-                    //% "Time"
-                    title.text = qsTrId("id-time-page") + localeManager.changesObserver
-
-                    config.state = "TIME";
-                    break;
-                case "TIME":
-                    var hour = hourLV.currentIndex;
-                    if(use12H.value)
-                        hour += amPmLV.currentIndex*12;
-                    dtSettings.setTime(hour, minuteLV.currentIndex)
-                    
-                    //% "Date"
-                    title.text = qsTrId("id-date-page") + localeManager.changesObserver
-                    
-                    config.state = "DATE";
-                    break;
-                case "DATE":
-                    var date = new Date();
-                    date.setDate(dayLV.currentIndex+1)
-                    date.setMonth(monthLV.currentIndex)
-                    date.setFullYear(yearLV.currentIndex+2000)
-                    dtSettings.setDate(date)
-                    
-                    config.destroy()
-                    break;
-                default:
-                    console.log("FirstRunConfig: Unhandled state detected");
-            }
-        }
     }
+
 }

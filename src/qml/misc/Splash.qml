@@ -28,76 +28,123 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+import QtGraphicalEffects 1.15
 import QtQuick 2.9
 import org.asteroid.controls 1.0
-import QtGraphicalEffects 1.15
 
 Item {
     anchors.fill: parent
     visible: background.opacity > 0
+
     Timer {
         id: animationStarter
+
         running: true
         triggeredOnStart: true
         onTriggered: {
-            background.opacity = 0
-            logoTransform.scale = 14
-            cutout.width = Dims.w(150)
+            background.opacity = 0;
+            logoTransform.scale = 14;
+            cutout.width = Dims.w(150);
         }
     }
+
     Rectangle {
         id: background
+
         color: "black"
         anchors.fill: parent
-        opacity: visible ? 1.0 : 0
+        opacity: visible ? 1 : 0
+
         Behavior on opacity {
             SequentialAnimation {
-                PauseAnimation { duration: 150 }
-                NumberAnimation { duration: 250; easing.type: Easing.InSine }
+                PauseAnimation {
+                    duration: 150
+                }
+
+                NumberAnimation {
+                    duration: 250
+                    easing.type: Easing.InSine
+                }
+
             }
+
         }
+
     }
+
     Rectangle {
         id: logo
+
         anchors.fill: parent
         color: "black"
         visible: false
+
         Image {
-            property var logoSize: (parent.width > parent.height ? parent.height : parent.width) * 0.55
             id: logoSvg
+
+            property var logoSize: (parent.width > parent.height ? parent.height : parent.width) * 0.55
+
             anchors.fill: parent
             fillMode: Image.Pad
             source: "qrc:/images/bootlogo.svg"
             sourceSize: Qt.size(logoSize, logoSize)
+
             transform: Scale {
                 id: logoTransform
+
                 property real scale: 1
+
                 origin.x: Dims.w(50)
                 origin.y: Dims.h(44.5)
                 xScale: scale
                 yScale: scale
-                Behavior on scale { NumberAnimation { duration: 400; easing.type: Easing.InQuint } }
+
+                Behavior on scale {
+                    NumberAnimation {
+                        duration: 400
+                        easing.type: Easing.InQuint
+                    }
+
+                }
+
             }
+
         }
+
     }
+
     Item {
         id: mask
+
         anchors.fill: parent
         visible: false
+
         Rectangle {
             id: cutout
+
             width: 1
             height: width
             anchors.centerIn: parent
             anchors.verticalCenterOffset: -Dims.h(5)
             radius: parent.width / 2
-            Behavior on width { NumberAnimation { duration: 400; easing.type: Easing.InQuint } }
+
+            Behavior on width {
+                NumberAnimation {
+                    duration: 400
+                    easing.type: Easing.InQuint
+                }
+
+            }
+
         }
+
     }
+
     OpacityMask {
         anchors.fill: logo
         source: logo
         maskSource: mask
         invert: true
     }
+
 }

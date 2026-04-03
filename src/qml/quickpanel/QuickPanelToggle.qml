@@ -33,74 +33,75 @@ import org.asteroid.controls 1.0
 MouseArea {
     id: ma
 
-    width: parent.width
-    height: width
-
     property alias icon: ic.name
     property bool checkable: false
     property bool checked: false
-
     property bool rangeBased: false
     property int rangeMin: 0
     property int rangeMax: 100
     property int rangeStepSize: 10
     property int rangeValue: 0
-
-    pressAndHoldInterval: 300
-
     property bool isIncreasing: true
 
+    width: parent.width
+    height: width
+    pressAndHoldInterval: 300
     onPressAndHold: {
-        if (!rangeBased) return;
-        holdTimer.start()
-    }
+        if (!rangeBased)
+            return ;
 
+        holdTimer.start();
+    }
     onReleased: {
-        holdTimer.stop()
-        directionChangeTimer.stop()
+        holdTimer.stop();
+        directionChangeTimer.stop();
     }
 
     Timer {
         id: holdTimer
+
         interval: 300
         repeat: true
         triggeredOnStart: true
         onTriggered: {
-            const newValue = rangeValue + (isIncreasing ? 1 : -1) * rangeStepSize
-            rangeValue = Math.max(rangeMin, Math.min(rangeMax, newValue))
+            const newValue = rangeValue + (isIncreasing ? 1 : -1) * rangeStepSize;
+            rangeValue = Math.max(rangeMin, Math.min(rangeMax, newValue));
             if (rangeValue >= rangeMax || rangeValue <= rangeMin) {
-                holdTimer.stop()
-                isIncreasing = !isIncreasing
-                directionChangeTimer.start()
+                holdTimer.stop();
+                isIncreasing = !isIncreasing;
+                directionChangeTimer.start();
             }
         }
     }
 
     Timer {
         id: directionChangeTimer
+
         //delay after direction is changed
         interval: 1000
         repeat: false
         onTriggered: {
             if (ma.pressed)
-                holdTimer.start()
+                holdTimer.start();
+
         }
     }
 
     Rectangle {
         anchors.fill: parent
-        radius: width/2
+        radius: width / 2
         color: "#222222"
-        opacity: ma.pressed ? 0.6 : ma.checked ?  0.75 : (ma.checkable ? 0.2 : 1)
+        opacity: ma.pressed ? 0.6 : ma.checked ? 0.75 : (ma.checkable ? 0.2 : 1)
     }
 
     Icon {
         id: ic
-        width: parent.width*0.5
+
+        width: parent.width * 0.5
         height: width
         anchors.centerIn: parent
         color: ma.pressed ? "lightgrey" : "white"
         opacity: ma.pressed ? 0.5 : ma.checked ? 1 : (ma.checkable ? 0.3 : 1)
     }
-}
 
+}

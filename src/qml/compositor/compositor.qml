@@ -32,92 +32,94 @@
 
 import QtQuick 2.9
 import QtQuick.Window 2.1
-import org.nemomobile.lipstick 0.1
+import "compositor"
+import "desktop.js" as Desktop
 import org.asteroid.controls 1.0
 import org.asteroid.utils 1.0
-import "desktop.js" as Desktop
-import "compositor"
+import org.nemomobile.lipstick 0.1
 
 Item {
     id: root
+
     width: Dims.w(100)
     height: Dims.h(100)
     rotation: Screen.angleBetween(Screen.primaryScreen, Lipstick.compositor.screenOrientation)
 
     Item {
         id: homeLayer
+
         z: 1
         anchors.fill: parent
     }
 
     Item {
-        property bool ready: false
         id: appLayer
+
+        property bool ready: false
+
         visible: comp.appActive
         z: 2
-
-        opacity: (width-2*gestureArea.value)/width
-        x: gestureArea.active &&  gestureArea.horizontal ? gestureArea.value : 0
+        opacity: (width - 2 * gestureArea.value) / width
+        x: gestureArea.active && gestureArea.horizontal ? gestureArea.value : 0
         y: gestureArea.active && !gestureArea.horizontal ? gestureArea.value : 0
-
         width: parent.width
         height: parent.height
-
         // Let app deal with rotation themselves
         rotation: Screen.angleBetween(Lipstick.compositor.screenOrientation, Screen.primaryScreen)
     }
 
     Item {
         id: notificationLayer
+
         z: 3
         anchors.fill: parent
     }
 
     Item {
         id: agentLayer
+
         z: 4
         anchors.fill: parent
     }
 
     BorderGestureArea {
         id: gestureArea
+
+        property real swipeThreshold: 0.15
+
         enabled: comp.appActive
         z: 5
         anchors.fill: parent
         acceptsDown: true
         acceptsRight: !comp.topmostWindowRequestsGesturesDisabled
-
-        property real swipeThreshold: 0.15
-
         onGestureStarted: {
-            swipeAnimation.stop()
-            if (gesture == "down") {
-                Desktop.desktop.aboutToClose = true
-            } else if(gesture == "right") {
-                Desktop.desktop.aboutToMinimize = true
-            }
+            swipeAnimation.stop();
+            if (gesture == "down")
+                Desktop.desktop.aboutToClose = true;
+            else if (gesture == "right")
+                Desktop.desktop.aboutToMinimize = true;
         }
-
         onGestureFinished: {
             if ((gesture == "down" || gesture == "right")) {
                 if (gestureArea.progress >= swipeThreshold) {
-                    swipeAnimation.valueTo = inverted ? -max : max
-                    swipeAnimation.start()
-                    var app = comp.topmostWindow
-                    comp.topmostWindow = comp.homeWindow
-                    Lipstick.compositor.closeClientForWindowId(app.window.windowId)
+                    swipeAnimation.valueTo = inverted ? -max : max;
+                    swipeAnimation.start();
+                    var app = comp.topmostWindow;
+                    comp.topmostWindow = comp.homeWindow;
+                    Lipstick.compositor.closeClientForWindowId(app.window.windowId);
                 } else {
-                    cancelAnimation.start()
+                    cancelAnimation.start();
                 }
             } else if (comp.homeActive) {
-                cancelAnimation.start()
+                cancelAnimation.start();
             }
-            Desktop.desktop.aboutToClose = false
-            Desktop.desktop.aboutToMinimize = false
+            Desktop.desktop.aboutToClose = false;
+            Desktop.desktop.aboutToMinimize = false;
         }
 
         NumberAnimation {
             id: cancelAnimation
+
             target: gestureArea
             property: "value"
             to: 0
@@ -127,10 +129,12 @@ Item {
 
         SequentialAnimation {
             id: swipeAnimation
+
             property alias valueTo: valueAnimation.to
 
             NumberAnimation {
                 id: valueAnimation
+
                 target: gestureArea
                 property: "value"
                 duration: 200
@@ -140,21 +144,27 @@ Item {
             ScriptAction {
                 script: comp.setCurrentWindow(comp.homeWindow)
             }
+
         }
+
     }
 
     Component {
         id: windowWrapper
-        WindowWrapperBase { }
+
+        WindowWrapperBase {
+        }
+
     }
 
     Timer {
         id: delayTimer
+
         interval: 5000
         repeat: false
         onTriggered: {
-            Lipstick.compositor.closeClientForWindowId(comp.topmostWindow.window.windowId)
-            Lipstick.compositor.setAmbientUpdatesEnabled(true)
+            Lipstick.compositor.closeClientForWindowId(comp.topmostWindow.window.windowId);
+            Lipstick.compositor.setAmbientUpdatesEnabled(true);
         }
     }
 
@@ -162,99 +172,101 @@ Item {
         id: comp
 
         property Item homeWindow
-
         // Set to the item of the current topmost window
         property Item topmostWindow
-
         // Only used to change blank timeout when on watchface or elsewhere
         property bool longTimeout: homeActive
-        Component.onCompleted: longTimeout = Qt.binding(function() { return homeActive && (Desktop.panelsGrid.currentVerticalPos == 0 && Desktop.panelsGrid.currentHorizontalPos == 0) })
-        onLongTimeoutChanged: lipstickSettings.lockscreenVisible = longTimeout
-
-        // True if the home window is the topmost window
-        homeActive: topmostWindow == comp.homeWindow
         property bool appActive: !homeActive
-
         // The application window that was most recently topmost
         property Item topmostApplicationWindow
-
-        readonly property bool topmostWindowRequestsGesturesDisabled: topmostWindow && topmostWindow.window
-                                                                      && (topmostWindow.window.windowFlags & 1)
+        readonly property bool topmostWindowRequestsGesturesDisabled: topmostWindow && topmostWindow.window && (topmostWindow.window.windowFlags & 1)
 
         function windowToFront(winId) {
-            var o = comp.windowForId(winId)
-            var window = null
+            var o = comp.windowForId(winId);
+            var window = null;
+            if (o)
+                window = o.userData;
 
-            if (o) window = o.userData
-            if (window == null) window = homeWindow
+            if (window == null)
+                window = homeWindow;
 
-            setCurrentWindow(window)
+            setCurrentWindow(window);
         }
 
         function setCurrentWindow(w, skipAnimation) {
             if (w == null)
-                w = homeWindow
+                w = homeWindow;
 
             topmostWindow = w;
-
             if (topmostWindow != homeWindow && topmostWindow != null) {
-                if (topmostApplicationWindow) topmostApplicationWindow.visible = false
-                topmostApplicationWindow = topmostWindow
-                topmostApplicationWindow.visible = true
-                if (!skipAnimation) topmostApplicationWindow.animateIn()
-                w.window.takeFocus()
+                if (topmostApplicationWindow)
+                    topmostApplicationWindow.visible = false;
+
+                topmostApplicationWindow = topmostWindow;
+                topmostApplicationWindow.visible = true;
+                if (!skipAnimation)
+                    topmostApplicationWindow.animateIn();
+
+                w.window.takeFocus();
             }
         }
 
+        Component.onCompleted: longTimeout = Qt.binding(function() {
+            return homeActive && (Desktop.panelsGrid.currentVerticalPos == 0 && Desktop.panelsGrid.currentHorizontalPos == 0);
+        })
+        onLongTimeoutChanged: lipstickSettings.lockscreenVisible = longTimeout
+        // True if the home window is the topmost window
+        homeActive: topmostWindow == comp.homeWindow
         onDisplayOff: delayTimer.start()
         onDisplayAboutToBeOn: delayTimer.stop()
-
         onWindowAdded: {
-            var isHomeWindow = window.isInProcess && comp.homeWindow == null && window.title === "Home"
-            var isDialogWindow = window.category === "dialog"
-            var isNotificationWindow = window.category == "notification"
-            var isAgentWindow = window.category == "agent"
-            var parent = null
+            var isHomeWindow = window.isInProcess && comp.homeWindow == null && window.title === "Home";
+            var isDialogWindow = window.category === "dialog";
+            var isNotificationWindow = window.category == "notification";
+            var isAgentWindow = window.category == "agent";
+            var parent = null;
+            if (isHomeWindow)
+                parent = homeLayer;
+            else if (isNotificationWindow)
+                parent = notificationLayer;
+            else if (isAgentWindow)
+                parent = agentLayer;
+            else
+                parent = appLayer;
+            var w = windowWrapper.createObject(parent, {
+                "window": window
+            });
+            window.userData = w;
             if (isHomeWindow) {
-                parent = homeLayer
-            } else if (isNotificationWindow) {
-                parent = notificationLayer
-            } else if (isAgentWindow) {
-                parent = agentLayer
-            } else {
-                parent = appLayer
-            }
-
-            var w = windowWrapper.createObject(parent, { window: window })
-            window.userData = w
-
-            if (isHomeWindow) {
-                parent.z = Qt.binding(function() { return w.window.rootItem.z })
-                Desktop.desktop.aboutToOpen = Qt.binding(function() {return !homeActive && !appLayer.ready })
-                comp.homeWindow = w
-                setCurrentWindow(homeWindow)
+                parent.z = Qt.binding(function() {
+                    return w.window.rootItem.z;
+                });
+                Desktop.desktop.aboutToOpen = Qt.binding(function() {
+                    return !homeActive && !appLayer.ready;
+                });
+                comp.homeWindow = w;
+                setCurrentWindow(homeWindow);
             } else if (!isNotificationWindow && !isAgentWindow && !isDialogWindow) {
-                if (topmostApplicationWindow != null) {
-                    Lipstick.compositor.closeClientForWindowId(topmostApplicationWindow.window.windowId)
-                }
-                parent.ready = false
-                w.smoothBorders = true
-                w.x = width
-                w.moveInAnim.start()
-                cancelAnimation.start()
-                setCurrentWindow(w)
+                if (topmostApplicationWindow != null)
+                    Lipstick.compositor.closeClientForWindowId(topmostApplicationWindow.window.windowId);
+
+                parent.ready = false;
+                w.smoothBorders = true;
+                w.x = width;
+                w.moveInAnim.start();
+                cancelAnimation.start();
+                setCurrentWindow(w);
             }
         }
-
-        onWindowRaised:  windowToFront(window.windowId)
-
+        onWindowRaised: windowToFront(window.windowId)
         onWindowRemoved: {
             var w = window.userData;
             if (comp.topmostWindow == w)
                 setCurrentWindow(comp.homeWindow);
 
             if (window.userData)
-                window.userData.destroy()
+                window.userData.destroy();
+
         }
     }
 
@@ -264,9 +276,12 @@ Item {
         z: 6
         visible: DeviceSpecs.hasRoundScreen
         layer.enabled: DeviceSpecs.hasRoundScreen
+
         layer.effect: CircleMaskShader {
             smoothness: 0.002
             keepInner: false
         }
+
     }
+
 }

@@ -27,11 +27,13 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+import QtMultimedia 5.4
 import QtQuick 2.9
 import org.asteroid.controls 1.0
-import QtMultimedia 5.4
 
 MouseArea {
+    //% "Now"
+
     id: view
 
     property QtObject panelsGrid
@@ -39,64 +41,63 @@ MouseArea {
     property bool forbidTop: column.y < 0
     property real prevY: 0
 
-    SoundEffect {
-        id: notifSound
-        source: "file:///usr/share/sounds/notification.wav"
-    }
-
-    onNotificationChanged: {
-        if(notification !== undefined && notification !== null) {
-            appName.text = notification.appName
-            summary.text = notification.summary
-            body.text = notification.body
-            notifSound.play()
-            updateTimestamp()
-        }
-    }
-
     function updateTimestamp() {
-        var currentTime = new Date
-        var delta = (currentTime.getTime() - notification.timestamp.getTime())
-
-        if(delta < 60*1000)
-            //% "Now"
-            timestamp.text = qsTrId("id-now") + localeManager.changesObserver
-        else {
-            delta = parseInt(delta/(1000*60))
-            if(delta < 60) {
+        var currentTime = new Date;
+        var delta = (currentTime.getTime() - notification.timestamp.getTime());
+        if (delta < 60 * 1000) {
+            timestamp.text = qsTrId("id-now") + localeManager.changesObserver;
+        } else {
+            delta = parseInt(delta / (1000 * 60));
+            if (delta < 60) {
                 //% "m"
-                timestamp.text = delta + qsTrId("id-minute-abbrev") + localeManager.changesObserver
+                timestamp.text = delta + qsTrId("id-minute-abbrev") + localeManager.changesObserver;
             } else {
-                delta = parseInt(delta/60)
-                if(delta < 60) {
+                delta = parseInt(delta / 60);
+                if (delta < 60) {
                     //% "h"
-                    timestamp.text = delta + qsTrId("id-hour-abbrev") + localeManager.changesObserver
+                    timestamp.text = delta + qsTrId("id-hour-abbrev") + localeManager.changesObserver;
                 } else {
-                    delta = parseInt(delta/24)
+                    delta = parseInt(delta / 24);
                     //% "d"
-                    timestamp.text = delta + qsTrId("id-day-abbrev") + localeManager.changesObserver
+                    timestamp.text = delta + qsTrId("id-day-abbrev") + localeManager.changesObserver;
                 }
             }
         }
     }
 
+    onNotificationChanged: {
+        if (notification !== undefined && notification !== null) {
+            appName.text = notification.appName;
+            summary.text = notification.summary;
+            body.text = notification.body;
+            notifSound.play();
+            updateTimestamp();
+        }
+    }
     onPressed: prevY = mouse.y
-
     onPositionChanged: {
-        var newY = column.y + mouse.y-prevY
-        newY = Math.max(newY, -column.height+view.height)
-        newY = Math.min(newY, 0)
-        column.y = newY
-        prevY = mouse.y
+        var newY = column.y + mouse.y - prevY;
+        newY = Math.max(newY, -column.height + view.height);
+        newY = Math.min(newY, 0);
+        column.y = newY;
+        prevY = mouse.y;
+    }
+
+    SoundEffect {
+        id: notifSound
+
+        source: "file:///usr/share/sounds/notification.wav"
     }
 
     Column {
         id: column
+
         anchors.horizontalCenter: parent.horizontalCenter
         width: view.width * 0.7
 
         Item {
             id: spacing1
+
             height: Dims.h(15)
             width: 1
         }
@@ -106,32 +107,41 @@ MouseArea {
 
             Label {
                 id: appName
+
                 width: Dims.w(56)
                 font.pixelSize: Dims.l(6)
                 elide: Text.ElideRight
 
                 Connections {
+                    function onCurrentHorizontalPosChanged() {
+                        updateTimestamp();
+                    }
+
                     target: panelsGrid
-                    function onCurrentHorizontalPosChanged() { updateTimestamp() }
                 }
+
             }
 
             Label {
                 id: timestamp
+
                 font.pixelSize: appName.font.pixelSize
                 horizontalAlignment: Text.AlignRight
                 width: Dims.w(14)
             }
+
         }
 
         Item {
             id: spacing3
+
             height: Dims.h(3)
             width: 1
         }
 
         Label {
             id: summary
+
             font.bold: true
             width: parent.width
             elide: Text.ElideRight
@@ -139,12 +149,14 @@ MouseArea {
 
         Item {
             id: spacing4
+
             height: Dims.h(1)
             width: 1
         }
 
         Label {
             id: body
+
             anchors.horizontalCenter: parent.horizontalCenter
             wrapMode: Text.Wrap
             width: parent.width
@@ -152,6 +164,7 @@ MouseArea {
 
         Item {
             id: spacing5
+
             height: Dims.h(10)
             width: 1
         }
@@ -162,13 +175,20 @@ MouseArea {
             anchors.horizontalCenter: parent.horizontalCenter
             width: Dims.w(55)
             height: Dims.h(20)
-            onClicked: if (notification !== undefined && notification.userRemovable) notification.actionInvoked("default")
+            onClicked: {
+                if (notification !== undefined && notification.userRemovable)
+                    notification.actionInvoked("default");
+
+            }
         }
 
         Item {
             id: spacing6
+
             height: Dims.h(10)
             width: 1
         }
+
     }
+
 }

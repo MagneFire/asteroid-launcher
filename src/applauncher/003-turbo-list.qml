@@ -32,54 +32,79 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-import QtQuick 2.15
 import QtGraphicalEffects 1.12
+import QtQuick 2.15
 import org.asteroid.controls 1.0
 import org.asteroid.utils 1.0
 
 ListView {
     id: appsView
-    anchors.fill: parent
-    preferredHighlightBegin: appsView.height/2 - appsView.height/12
-    preferredHighlightEnd: appsView.height/2 + appsView.height/12
-    highlightRangeMode: ListView.StrictlyEnforceRange
 
     property int currentPos: 0
     // Scaling for when the launcher is shown as full screen (1.0) or in the settings app (0.5).
     property var viewScale: (appsView.width > appsView.height ? appsView.height : appsView.width) / Dims.l(100)
 
+    anchors.fill: parent
+    preferredHighlightBegin: appsView.height / 2 - appsView.height / 12
+    preferredHighlightEnd: appsView.height / 2 + appsView.height / 12
+    highlightRangeMode: ListView.StrictlyEnforceRange
     onCurrentPosChanged: {
-        rightIndicator.animate()
-        leftIndicator.animate()
-        topIndicator.animate()
-        bottomIndicator.animate()
+        rightIndicator.animate();
+        leftIndicator.animate();
+        topIndicator.animate();
+        bottomIndicator.animate();
     }
-
-    Connections {
-        target: grid
-        function onCurrentVerticalPosChanged() {
-            // Move app view to beginning when the watchface is visible.
-            if (grid.currentVerticalPos === 0) {
-                appsView.highlightMoveDuration = 0
-                appsView.currentIndex = 0
-            } else if (grid.currentVerticalPos === 1) {
-                appsView.highlightMoveDuration = 1500
-                forbidTop = false
-                grid.changeAllowedDirections()
-            }
-        }
-    }
-
     onAtYBeginningChanged: {
         // Make sure that the grid doesn't move when the app view is visible.
         if ((grid.currentHorizontalPos === 0) && (grid.currentVerticalPos === 1)) {
-            forbidTop = !atYBeginning
-            grid.changeAllowedDirections()
+            forbidTop = !atYBeginning;
+            grid.changeAllowedDirections();
         }
     }
     model: launcherModel
+    Component.onCompleted: {
+        toLeftAllowed = false;
+        toRightAllowed = false;
+        toBottomAllowed = Qt.binding(function() {
+            return !atYBeginning;
+        });
+        toTopAllowed = Qt.binding(function() {
+            return !atYEnd;
+        });
+        forbidTop = Qt.binding(function() {
+            return !atYBeginning;
+        });
+        forbidBottom = false;
+        forbidLeft = false;
+        forbidRight = false;
+        launcherColorOverride = true;
+    }
+    onContentYChanged: {
+        var lowerStop = Math.floor(contentY / (appsView.height / 6));
+        var upperStop = lowerStop + 1;
+        var ratio = (contentY % appsView.height) / (appsView.height / 6);
+        currentPos = Math.round(lowerStop + ratio);
+    }
+
+    Connections {
+        function onCurrentVerticalPosChanged() {
+            // Move app view to beginning when the watchface is visible.
+            if (grid.currentVerticalPos === 0) {
+                appsView.highlightMoveDuration = 0;
+                appsView.currentIndex = 0;
+            } else if (grid.currentVerticalPos === 1) {
+                appsView.highlightMoveDuration = 1500;
+                forbidTop = false;
+                grid.changeAllowedDirections();
+            }
+        }
+
+        target: grid
+    }
 
     delegate: MouseArea {
+        id: launcherItem
+
         // We want items to move to the left when an item is near the middle of the screen:
         //  / 1
         // | 2
@@ -89,17 +114,15 @@ ListView {
         // Next we use the Pythagoras rule (x^2+y^2=r^2) to align the item around the left edge.
         // Rewriting Pythagoras rule: sqrt(r^2 - y^2) => sqrt(listview_height/2^2 - location_item_y^2)
         // Finally we add a small padding (Dims.w(5)) so that the item is not touching the left 'bezel'.
-        property var screenRadius: appsView.height/2
-        property var itemLocationY: (launcherItem.height * (appsView.contentY/launcherItem.height - index) - launcherItem.height/2)
-        property var bezelOffset: screenRadius - Math.sqrt(Math.pow(screenRadius, 2) - Math.pow((screenRadius + itemLocationY),2))
-        property var normalizedBezelOffset: 1.0 - (bezelOffset / screenRadius)
+        property var screenRadius: appsView.height / 2
+        property var itemLocationY: (launcherItem.height * (appsView.contentY / launcherItem.height - index) - launcherItem.height / 2)
+        property var bezelOffset: screenRadius - Math.sqrt(Math.pow(screenRadius, 2) - Math.pow((screenRadius + itemLocationY), 2))
+        property var normalizedBezelOffset: 1 - (bezelOffset / screenRadius)
 
-        id: launcherItem
-        height: appsView.height/6
+        height: appsView.height / 6
         width: appsView.width
         enabled: !appsView.dragging
         opacity: normalizedBezelOffset
-
         onClicked: model.object.launchApplication()
 
         Item {
@@ -110,31 +133,39 @@ ListView {
 
             Item {
                 id: circleWrapper
+
                 width: parent.height * 0.8
                 height: width
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.left: parent.left
+
                 Rectangle {
                     id: circle
+
                     anchors.centerIn: parent
                     width: parent.width
                     height: parent.height
-                    radius: width/2
-                    opacity: launcherItem.pressed | fakePressed ? 0.8 : 1.0
+                    radius: width / 2
+                    opacity: launcherItem.pressed | fakePressed ? 0.8 : 1
                     color: alb.centerColor(launcherModel.get(index).filePath)
+
                     Behavior on opacity {
                         PropertyAnimation {
                             target: circle
                             duration: 70
                         }
+
                     }
+
                 }
+
             }
+
             DropShadow {
                 anchors.fill: circleWrapper
                 horizontalOffset: 0
                 verticalOffset: 0
-                radius: 8.0
+                radius: 8
                 samples: 12
                 color: "#80000000"
                 source: circleWrapper
@@ -143,14 +174,17 @@ ListView {
 
             Icon {
                 id: icon
+
                 anchors.centerIn: circleWrapper
-                width: circleWrapper.width * 0.70
+                width: circleWrapper.width * 0.7
                 height: width
-                opacity: launcherItem.pressed | fakePressed ? 1.0 : 0.9
+                opacity: launcherItem.pressed | fakePressed ? 1 : 0.9
                 name: model.object.iconId === "" ? "ios-help" : model.object.iconId
             }
+
             Label {
                 id: iconText
+
                 anchors.left: circleWrapper.right
                 width: parent.width
                 anchors.leftMargin: parent.width * 0.04
@@ -162,25 +196,9 @@ ListView {
                 styleColor: alb.centerColor(launcherModel.get(index).filePath)
                 text: model.object.title + localeManager.changesObserver
             }
+
         }
+
     }
 
-    Component.onCompleted: {
-        toLeftAllowed = false
-        toRightAllowed = false
-        toBottomAllowed =  Qt.binding(function() { return !atYBeginning })
-        toTopAllowed = Qt.binding(function() { return !atYEnd })
-        forbidTop = Qt.binding(function() { return !atYBeginning })
-        forbidBottom = false
-        forbidLeft = false
-        forbidRight = false
-        launcherColorOverride = true
-    }
-
-    onContentYChanged: {
-        var lowerStop = Math.floor(contentY/(appsView.height/6))
-        var upperStop = lowerStop+1
-        var ratio = (contentY%appsView.height)/(appsView.height/6)
-        currentPos = Math.round(lowerStop+ratio)
-    }
 }

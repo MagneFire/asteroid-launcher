@@ -36,7 +36,6 @@ import org.asteroid.utils 1.0
 ShaderEffect {
     property real smoothness: 0.0007
     property bool keepInner: true
-
     property real end: 0.25
     property real beginning: 0.25 - smoothness
 

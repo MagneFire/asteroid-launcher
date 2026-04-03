@@ -33,22 +33,12 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-import QtQuick 2.15
 import QtGraphicalEffects 1.12
+import QtQuick 2.15
 import org.asteroid.controls 1.0
 import org.asteroid.utils 1.0
 
 Item {
-    id: root
-
-    property int currentPressedIndex: 0
-    property bool clickToggle: false
-    property bool pressToggle: false
-    property bool dragStop: false
-    property string appTitle: ""
-    property real clickY: 0
-    property int numColumns: 3
-
     // these are from the calling code
     /*
     property bool fakePressed:     false
@@ -62,14 +52,25 @@ Item {
     property bool forbidRight:     false
     */
 
+    id: root
+
+    property int currentPressedIndex: 0
+    property bool clickToggle: false
+    property bool pressToggle: false
+    property bool dragStop: false
+    property string appTitle: ""
+    property real clickY: 0
+    property int numColumns: 3
+
     Connections {
-        target: grid
         function onCurrentVerticalPosChanged() {
             // Move app view to beginning when the watchface is visible.
-            if (grid.currentVerticalPos === 0) {
-                appsView.positionViewAtBeginning()
-            }
+            if (grid.currentVerticalPos === 0)
+                appsView.positionViewAtBeginning();
+
         }
+
+        target: grid
     }
 
     Component {
@@ -78,12 +79,30 @@ Item {
         MouseArea {
             id: launcherItem
 
+            property int pressAndHoldDuration: 200
+
+            signal timedPressAndHold()
+
             width: appsView.width / numColumns
             height: width
             enabled: !appsView.dragging
-
-            property int pressAndHoldDuration: 200
-            signal timedPressAndHold()
+            onClicked: {
+                clickToggle = true;
+                model.object.launchApplication();
+            }
+            onPressed: {
+                pressAndHoldTimer.start();
+                root.dragStop = false;
+            }
+            onReleased: {
+                pressAndHoldTimer.stop();
+            }
+            onTimedPressAndHold: {
+                appTitle = model.object.title;
+                clickToggle = false;
+                pressToggle ? pressToggle = false : pressToggle = true;
+                currentPressedIndex = index;
+            }
 
             Timer {
                 id: pressAndHoldTimer
@@ -92,48 +111,27 @@ Item {
                 running: false
                 repeat: false
                 onTriggered: {
-                     if (!root.dragStop) {
-                         parent.timedPressAndHold()
-                     }
-                     else {
-                         root.dragStop = false
-                     }
+                    if (!root.dragStop)
+                        parent.timedPressAndHold();
+                    else
+                        root.dragStop = false;
                 }
-            }
-
-            onClicked: {
-                clickToggle = true
-                model.object.launchApplication()
-            }
-
-            onPressed: {
-                pressAndHoldTimer.start();
-                root.dragStop = false
-            }
-
-            onReleased: {
-                pressAndHoldTimer.stop();
-            }
-
-            onTimedPressAndHold: {
-                appTitle = model.object.title
-                clickToggle = false
-                pressToggle ? pressToggle = false : pressToggle = true
-                currentPressedIndex = index
             }
 
             Connections {
-                target: appLauncher
                 function onFakePressedChanged() {
-                    appTitle = model.object.title
+                    appTitle = model.object.title;
                 }
+
+                target: appLauncher
             }
 
             Item {
                 id: circleWrapper
 
-                width: parent.width * .86
+                width: parent.width * 0.86
                 height: width
+
                 anchors {
                     centerIn: parent
                 }
@@ -143,20 +141,26 @@ Item {
 
                     anchors.fill: parent
                     radius: width / 2
-                    color: !pressAndHoldTimer.running && launcherItem.pressed | fakePressed ?
-                               alb.centerColor(launcherModel.get(currentPressedIndex).filePath) :
-                               "#f4f4f4"
+                    color: !pressAndHoldTimer.running && launcherItem.pressed | fakePressed ? alb.centerColor(launcherModel.get(currentPressedIndex).filePath) : "#f4f4f4"
+
                     Behavior on color {
-                        PropertyAnimation { target: circle; property: "color"; duration: 70 }
+                        PropertyAnimation {
+                            target: circle
+                            property: "color"
+                            duration: 70
+                        }
+
                     }
+
                 }
+
             }
 
             DropShadow {
                 anchors.fill: circleWrapper
                 horizontalOffset: 0
                 verticalOffset: 0
-                radius: 8.0
+                radius: 8
                 samples: 17
                 color: "#80000000"
                 source: circleWrapper
@@ -166,96 +170,109 @@ Item {
             Icon {
                 id: icon
 
-                width: circleWrapper.width * .70
+                width: circleWrapper.width * 0.7
                 height: width
                 anchors.centerIn: circleWrapper
                 color: !pressAndHoldTimer.running && launcherItem.pressed | fakePressed ? "#fff" : "#555"
                 name: model.object.iconId === "" ? "ios-help" : model.object.iconId
+
                 Behavior on color {
-                    PropertyAnimation { target: icon; property: "color"; duration: 70 }
+                    PropertyAnimation {
+                        target: icon
+                        property: "color"
+                        duration: 70
+                    }
+
                 }
+
             }
+
         }
+
     }
 
     Component {
         id: spacer
+
         Item {
             height: DeviceSpecs.hasRoundScreen ? root.height / numColumns / 2 : 0
             width: height
         }
+
     }
 
     GridView {
         id: appsView
 
+        property int currentPos: 0
+
         flow: GridView.FlowLeftToRight
         snapMode: GridView.SnapToRow
-        anchors {
-            fill: parent
-            leftMargin: parent.width * .026
-            rightMargin: parent.width * .026
-        }
         clip: true
         cellHeight: height / numColumns
         cellWidth: width / numColumns
-        contentY: -height / (2*numColumns)
-
+        contentY: -height / (2 * numColumns)
         header: spacer
         footer: spacer
-
-        property int currentPos: 0
-
         onCurrentPosChanged: {
-            rightIndicator.animate()
-            leftIndicator.animate()
-            topIndicator.animate()
-            bottomIndicator.animate()
+            rightIndicator.animate();
+            leftIndicator.animate();
+            topIndicator.animate();
+            bottomIndicator.animate();
         }
-
         onDragStarted: {
-            dragStop = true
+            dragStop = true;
         }
-
-        Connections {
-            target: grid
-            function onCurrentVerticalPosChanged() {
-                // Move app view to beginning when the watchface is visible.
-                if (grid.currentVerticalPos === 0) {
-                    appsView.highlightMoveDuration = 0
-                    appsView.currentIndex = 0
-                    dragStop = true
-                } else if (grid.currentVerticalPos === 1) {
-                    appsView.highlightMoveDuration = 1500
-                    forbidTop = false
-                    grid.changeAllowedDirections()
-                }
-            }
-        }
-
         onAtYBeginningChanged: {
             // Make sure that the grid doesn't move when the app view is visible.
             if ((grid.currentHorizontalPos === 0) && (grid.currentVerticalPos === 1)) {
-                forbidTop = !atYBeginning
-                grid.changeAllowedDirections()
+                forbidTop = !atYBeginning;
+                grid.changeAllowedDirections();
             }
         }
-
         model: launcherModel
-
         delegate: gridDelegate
-
         Component.onCompleted: {
-            launcherColorOverride = true
-            toLeftAllowed = false
-            toRightAllowed = false
-            toBottomAllowed =  Qt.binding(function() { return !atYBeginning })
-            toTopAllowed = Qt.binding(function() { return !atYEnd })
-            forbidTop = Qt.binding(function() { return !atYBeginning })
-            forbidBottom = false
-            forbidLeft = false
-            forbidRight = false
+            launcherColorOverride = true;
+            toLeftAllowed = false;
+            toRightAllowed = false;
+            toBottomAllowed = Qt.binding(function() {
+                return !atYBeginning;
+            });
+            toTopAllowed = Qt.binding(function() {
+                return !atYEnd;
+            });
+            forbidTop = Qt.binding(function() {
+                return !atYBeginning;
+            });
+            forbidBottom = false;
+            forbidLeft = false;
+            forbidRight = false;
         }
+
+        anchors {
+            fill: parent
+            leftMargin: parent.width * 0.026
+            rightMargin: parent.width * 0.026
+        }
+
+        Connections {
+            function onCurrentVerticalPosChanged() {
+                // Move app view to beginning when the watchface is visible.
+                if (grid.currentVerticalPos === 0) {
+                    appsView.highlightMoveDuration = 0;
+                    appsView.currentIndex = 0;
+                    dragStop = true;
+                } else if (grid.currentVerticalPos === 1) {
+                    appsView.highlightMoveDuration = 1500;
+                    forbidTop = false;
+                    grid.changeAllowedDirections();
+                }
+            }
+
+            target: grid
+        }
+
     }
 
     MouseArea {
@@ -263,10 +280,9 @@ Item {
 
         anchors.fill: parent
         propagateComposedEvents: true
-
         onPressed: {
-            clickY = Math.round(mouse.y)
-            mouse.accepted = false
+            clickY = Math.round(mouse.y);
+            mouse.accepted = false;
         }
         onClicked: mouse.accepted = false
         onReleased: mouse.accepted = false
@@ -280,13 +296,15 @@ Item {
 
         opacity: 0
         visible: !root.clickToggle
+        width: root.width
+        height: root.height * 0.24
+        color: alb.centerColor(launcherModel.get(currentPressedIndex).filePath)
+
         anchors {
             centerIn: hoverTitle
             verticalCenterOffset: root.clickY > Dims.h(48) ? -Dims.h(2) : Dims.h(2)
         }
-        width: root.width
-        height: root.height * .24
-        color: alb.centerColor(launcherModel.get(currentPressedIndex).filePath)
+
     }
 
     Text {
@@ -302,49 +320,101 @@ Item {
         visible: !root.clickToggle
         horizontalAlignment: Text.AlignHCenter
         anchors.centerIn: parent
-        style: Text.Outline;
+        style: Text.Outline
         styleColor: alb.centerColor(launcherModel.get(currentPressedIndex).filePath)
+        text: appTitle.toUpperCase() + localeManager.changesObserver
+        layer.enabled: true
+
         font {
             pixelSize: ((appsView.width > appsView.height ? appsView.height : appsView.width) / Dims.l(100)) * Dims.l(9)
             styleName: "Condensed Medium"
-            letterSpacing: -parent.width * .004
+            letterSpacing: -parent.width * 0.004
         }
-        text: appTitle.toUpperCase() + localeManager.changesObserver
 
         Behavior on rootPressToggle {
             SequentialAnimation {
                 id: fadeText
 
                 // Reset position of all animated items for the case an animation has been interrupted
-                NumberAnimation { target: hoverTitle; property: "anchors.verticalCenterOffset"; to: hoverTitle.hoverTextOffset; duration: 0}
-                NumberAnimation { target: hoverTitle; property: "opacity"; to: 1; duration: 0}
-                NumberAnimation { target: titleShutter; property: "opacity"; to: .85; duration: 0}
+                NumberAnimation {
+                    target: hoverTitle
+                    property: "anchors.verticalCenterOffset"
+                    to: hoverTitle.hoverTextOffset
+                    duration: 0
+                }
 
-                PropertyAction { }
+                NumberAnimation {
+                    target: hoverTitle
+                    property: "opacity"
+                    to: 1
+                    duration: 0
+                }
+
+                NumberAnimation {
+                    target: titleShutter
+                    property: "opacity"
+                    to: 0.85
+                    duration: 0
+                }
+
+                PropertyAction {
+                }
 
                 // Slide in hoverTitle and shutter to either negative or positve offset from center depending on vertical click position
-                NumberAnimation { target: hoverTitle; property: "anchors.verticalCenterOffset"; to: -hoverTitle.hoverTextOffset + (hoverTitle.hoverTextOffset * 1.58); duration: 100; easing.type: Easing.InSine}
+                NumberAnimation {
+                    target: hoverTitle
+                    property: "anchors.verticalCenterOffset"
+                    to: -hoverTitle.hoverTextOffset + (hoverTitle.hoverTextOffset * 1.58)
+                    duration: 100
+                    easing.type: Easing.InSine
+                }
 
                 // Keep hoverTitle in visible position for 1s
-                PauseAnimation { duration: 1000 }
+                PauseAnimation {
+                    duration: 1000
+                }
 
                 // Slide hoverTitle and shutter out of view again
                 ParallelAnimation {
-                    NumberAnimation { target: hoverTitle; property: "opacity"; to: 0; duration: 200; easing.type: Easing.InSine}
-                    NumberAnimation { target: titleShutter; property: "opacity"; to: 0; duration: 200; easing.type: Easing.InSine}
-                    NumberAnimation { target: hoverTitle; property: "anchors.verticalCenterOffset"; to: hoverTitle.hoverTextOffset; duration: 200; easing.type: Easing.InSine}
+                    NumberAnimation {
+                        target: hoverTitle
+                        property: "opacity"
+                        to: 0
+                        duration: 200
+                        easing.type: Easing.InSine
+                    }
+
+                    NumberAnimation {
+                        target: titleShutter
+                        property: "opacity"
+                        to: 0
+                        duration: 200
+                        easing.type: Easing.InSine
+                    }
+
+                    NumberAnimation {
+                        target: hoverTitle
+                        property: "anchors.verticalCenterOffset"
+                        to: hoverTitle.hoverTextOffset
+                        duration: 200
+                        easing.type: Easing.InSine
+                    }
+
                 }
+
             }
+
         }
 
-        layer.enabled: true
         layer.effect: DropShadow {
             transparentBorder: true
             horizontalOffset: 0
             verticalOffset: 0
-            radius: 2.0
+            radius: 2
             samples: 5
             color: "#88000000"
         }
+
     }
+
 }

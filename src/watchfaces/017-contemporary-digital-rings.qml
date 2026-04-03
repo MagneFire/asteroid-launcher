@@ -23,46 +23,61 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-
 /*
  * Based on analog-precison by Mario Kicherer. Remodeled the arms to arcs
  * and tried hard on font centering and anchor alignment.
  */
 
+import Nemo.Mce 1.0
+import QtGraphicalEffects 1.15
 import QtQuick 2.15
 import QtQuick.Shapes 1.15
-import QtGraphicalEffects 1.15
 import org.asteroid.controls 1.0
 import org.asteroid.utils 1.0
-import Nemo.Mce 1.0
 
 Item {
-    anchors.fill: parent
-
-    property real radian: .01745
+    property real radian: 0.01745
 
     function prepareContext(ctx) {
-        ctx.reset()
-        ctx.shadowColor = (0, 0, 0, .25)
-        ctx.shadowOffsetX = 0
-        ctx.shadowOffsetY = 0
-        ctx.shadowBlur = parent.height * .00625
-        ctx.lineCap= "round"
+        ctx.reset();
+        ctx.shadowColor = (0, 0, 0, 0.25);
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+        ctx.shadowBlur = parent.height * 0.00625;
+        ctx.lineCap = "round";
     }
+
+    anchors.fill: parent
 
     Item {
         anchors.centerIn: parent
-
         height: parent.width > parent.height ? parent.height : parent.width
         width: height
+        Component.onCompleted: {
+            var hour = wallClock.time.getHours();
+            var minute = wallClock.time.getMinutes();
+            var second = wallClock.time.getSeconds();
+            secondCanvas.second = second;
+            secondCanvas.requestPaint();
+            minuteCanvas.minute = minute;
+            minuteCanvas.requestPaint();
+            hourCanvas.hour = hour;
+            hourCanvas.requestPaint();
+            burnInProtectionManager.widthOffset = Qt.binding(function() {
+                return width * nightstandMode.active ? 0.08 : 0.3;
+            });
+            burnInProtectionManager.heightOffset = Qt.binding(function() {
+                return height * nightstandMode.active ? 0.08 : 0.3;
+            });
+        }
 
         Rectangle {
-            x: parent.width / 2-width / 2
-            y: parent.height / 2-width / 2
-            color: Qt.rgba(0, 0, 0, .2)
+            x: parent.width / 2 - width / 2
+            y: parent.height / 2 - width / 2
+            color: Qt.rgba(0, 0, 0, 0.2)
             width: parent.width / 1.3
             height: parent.height / 1.3
-            radius: width * .5
+            radius: width * 0.5
         }
 
         Canvas {
@@ -75,15 +90,15 @@ Item {
             renderStrategy: Canvas.Cooperative
             visible: !displayAmbient && !nightstandMode.active
             onPaint: {
-                var ctx = getContext("2d")
-                var rot = (wallClock.time.getSeconds() - 15) * 6
-                var rot_half = (wallClock.time.getSeconds() - 22) * 6
-                prepareContext(ctx)
-                ctx.beginPath()
-                ctx.arc(parent.width / 2, parent.height / 2, width / 2.2, -89.5 * radian, rot* radian, false);
-                ctx.lineWidth = parent.width * .009375
-                ctx.strokeStyle = Qt.rgba(.871, .165, .102, .95)
-                ctx.stroke()
+                var ctx = getContext("2d");
+                var rot = (wallClock.time.getSeconds() - 15) * 6;
+                var rot_half = (wallClock.time.getSeconds() - 22) * 6;
+                prepareContext(ctx);
+                ctx.beginPath();
+                ctx.arc(parent.width / 2, parent.height / 2, width / 2.2, -89.5 * radian, rot * radian, false);
+                ctx.lineWidth = parent.width * 0.009375;
+                ctx.strokeStyle = Qt.rgba(0.871, 0.165, 0.102, 0.95);
+                ctx.stroke();
             }
         }
 
@@ -97,14 +112,14 @@ Item {
             renderStrategy: Canvas.Cooperative
             visible: !displayAmbient && !nightstandMode.active
             onPaint: {
-                var ctx = getContext("2d")
-                var rot = (minute -15 ) * 6
-                prepareContext(ctx)
-                ctx.beginPath()
+                var ctx = getContext("2d");
+                var rot = (minute - 15) * 6;
+                prepareContext(ctx);
+                ctx.beginPath();
                 ctx.arc(parent.width / 2, parent.height / 2, width / 2.33, -88.8 * radian, rot * radian, false);
-                ctx.lineWidth = parent.width * .01875
-                ctx.strokeStyle = Qt.rgba(1, .549, .149, .95)
-                ctx.stroke()
+                ctx.lineWidth = parent.width * 0.01875;
+                ctx.strokeStyle = Qt.rgba(1, 0.549, 0.149, 0.95);
+                ctx.stroke();
             }
         }
 
@@ -118,40 +133,45 @@ Item {
             renderStrategy: Canvas.Cooperative
             visible: !displayAmbient && !nightstandMode.active
             onPaint: {
-                var ctx = getContext("2d")
-                var rot = .5 * (60 * (hour - 3) + wallClock.time.getMinutes())
-                prepareContext(ctx)
-                ctx.beginPath()
-                ctx.arc(parent.width / 2, parent.height / 2, width / 2.6,  273.5 * radian, rot * radian, false);
-                ctx.lineWidth = parent.width * .05
-                ctx.strokeStyle = Qt.rgba(.945, .769, .059, .95)
-                ctx.stroke()
-                ctx.beginPath()
+                var ctx = getContext("2d");
+                var rot = 0.5 * (60 * (hour - 3) + wallClock.time.getMinutes());
+                prepareContext(ctx);
+                ctx.beginPath();
+                ctx.arc(parent.width / 2, parent.height / 2, width / 2.6, 273.5 * radian, rot * radian, false);
+                ctx.lineWidth = parent.width * 0.05;
+                ctx.strokeStyle = Qt.rgba(0.945, 0.769, 0.059, 0.95);
+                ctx.stroke();
+                ctx.beginPath();
             }
         }
 
         Text {
             id: hourDisplay
 
+            color: Qt.rgba(1, 1, 1, 1)
+            style: Text.Outline
+            styleColor: Qt.rgba(0, 0, 0, 0.5)
+            text: {
+                if (use12H.value)
+                    wallClock.time.toLocaleString(Qt.locale(), "hh ap").slice(0, 2);
+                else
+                    wallClock.time.toLocaleString(Qt.locale(), "HH");
+            }
+
             anchors {
                 right: parent.horizontalCenter
-                rightMargin: -parent.height * .0938
+                rightMargin: -parent.height * 0.0938
                 verticalCenter: parent.verticalCenter
-                verticalCenterOffset: parent.height * .0281
+                verticalCenterOffset: parent.height * 0.0281
             }
+
             font {
-                pixelSize: parent.height * .375
+                pixelSize: parent.height * 0.375
                 family: "Titillium"
                 styleName: 'Bold'
                 letterSpacing: -3
             }
-            color: Qt.rgba(1, 1, 1, 1)
-            style: Text.Outline
-            styleColor: Qt.rgba(0, 0, 0, .5)
-            text: if (use12H.value) {
-                      wallClock.time.toLocaleString(Qt.locale(), "hh ap").slice(0, 2) }
-                  else
-                      wallClock.time.toLocaleString(Qt.locale(), "HH")
+
         }
 
         Text {
@@ -159,107 +179,122 @@ Item {
 
             property real rotM: (wallClock.time.getMinutes() - 12.1) / 60
 
+            color: Qt.rgba(1, 1, 1, 1)
+            style: Text.Outline
+            styleColor: Qt.rgba(0, 0, 0, 0.5)
+            text: wallClock.time.toLocaleString(Qt.locale(), "mm")
+
             anchors {
-                top: hourDisplay.top;
-                topMargin: -parent.height * .015625
-                leftMargin: parent.width * .025
-                left: hourDisplay.right;
+                top: hourDisplay.top
+                topMargin: -parent.height * 0.015625
+                leftMargin: parent.width * 0.025
+                left: hourDisplay.right
             }
+
             font {
-                pixelSize: parent.height * .1375
+                pixelSize: parent.height * 0.1375
                 styleName: 'Semibold'
                 letterSpacing: -1
             }
-            color: Qt.rgba(1, 1, 1, 1)
-            style: Text.Outline
-            styleColor: Qt.rgba(0, 0, 0, .5)
-            text: wallClock.time.toLocaleString(Qt.locale(), "mm")
+
         }
 
         Text {
             id: secondDisplay
 
+            color: Qt.rgba(1, 1, 1, 1)
+            style: Text.Outline
+            styleColor: Qt.rgba(0, 0, 0, 0.5)
+            horizontalAlignment: Text.AlignHCenter
+            text: wallClock.time.toLocaleString(Qt.locale(), "ss")
+            visible: !displayAmbient
+
             anchors {
-                bottom: hourDisplay.bottom;
-                bottomMargin: parent.height * .059375
-                leftMargin: parent.width * .025
-                left: hourDisplay.right;
+                bottom: hourDisplay.bottom
+                bottomMargin: parent.height * 0.059375
+                leftMargin: parent.width * 0.025
+                left: hourDisplay.right
             }
+
             font {
-                pixelSize: parent.height * .1375
+                pixelSize: parent.height * 0.1375
                 family: "Titillium"
                 styleName: 'Thin'
                 letterSpacing: -1
             }
-            color: Qt.rgba(1, 1, 1, 1)
-            style: Text.Outline
-            styleColor: Qt.rgba(0, 0, 0, .5)
-            horizontalAlignment: Text.AlignHCenter
-            text: wallClock.time.toLocaleString(Qt.locale(), "ss")
-            visible: !displayAmbient
+
         }
 
         Text {
             id: dowDisplay
+
+            color: Qt.rgba(1, 1, 1, 1)
+            style: Text.Outline
+            styleColor: Qt.rgba(0, 0, 0, 0.5)
+            horizontalAlignment: Text.AlignHCenter
+            text: wallClock.time.toLocaleString(Qt.locale(), "dddd")
 
             anchors {
                 bottom: hourDisplay.top
                 left: parent.left
                 right: parent.right
             }
+
             font {
-                pixelSize: parent.height * .084375
+                pixelSize: parent.height * 0.084375
                 family: "Titillium"
                 styleName: 'Thin'
             }
-            color: Qt.rgba(1, 1, 1, 1)
-            style: Text.Outline
-            styleColor: Qt.rgba(0, 0, 0, .5)
-            horizontalAlignment: Text.AlignHCenter
-            text: wallClock.time.toLocaleString(Qt.locale(), "dddd")
+
         }
 
         Text {
             id: dateDisplay
 
+            color: Qt.rgba(1, 1, 1, 1)
+            style: Text.Outline
+            styleColor: Qt.rgba(0, 0, 0, 0.5)
+            horizontalAlignment: Text.AlignHCenter
+            text: wallClock.time.toLocaleString(Qt.locale(), "<b>dd</b> MMMM")
+
             anchors {
-                topMargin: -parent.height * .05
+                topMargin: -parent.height * 0.05
                 top: hourDisplay.bottom
                 left: parent.left
                 right: parent.right
             }
+
             font {
-                pixelSize: parent.height*.084375
+                pixelSize: parent.height * 0.084375
                 family: "Titillium"
-                styleName:'Thin'
+                styleName: 'Thin'
             }
-            color: Qt.rgba(1, 1, 1, 1)
-            style: Text.Outline
-            styleColor: Qt.rgba(0, 0, 0, .5)
-            horizontalAlignment: Text.AlignHCenter
-            text: wallClock.time.toLocaleString(Qt.locale(), "<b>dd</b> MMMM")
+
         }
 
         Text {
             id: pmDisplay
 
+            color: Qt.rgba(1, 1, 1, 1)
+            style: Text.Outline
+            styleColor: Qt.rgba(0, 0, 0, 0.5)
+            horizontalAlignment: Text.AlignHCenter
+            visible: use12H.value
+            text: wallClock.time.toLocaleString(Qt.locale(), "<b>ap</b>")
+
             anchors {
-                bottomMargin: +parent.height * .018
+                bottomMargin: +parent.height * 0.018
                 bottom: dowDisplay.top
                 left: parent.left
                 right: parent.right
             }
+
             font {
-                pixelSize: parent.height * .05
+                pixelSize: parent.height * 0.05
                 family: "Titillium"
                 styleName: 'Semibold'
             }
-            color: Qt.rgba(1, 1, 1, 1)
-            style: Text.Outline
-            styleColor: Qt.rgba(0, 0, 0, .5)
-            horizontalAlignment: Text.AlignHCenter
-            visible: use12H.value
-            text: wallClock.time.toLocaleString(Qt.locale(), "<b>ap</b>")
+
         }
 
         Item {
@@ -270,6 +305,7 @@ Item {
 
             anchors.fill: parent
             visible: nightstandMode.active
+
             layer {
                 enabled: true
                 samples: 4
@@ -282,10 +318,10 @@ Item {
 
                 property real angle: batteryChargePercentage.percent * 360 / 100
                 // radius of arc is scalefactor * height or width
-                property real arcStrokeWidth: .03
-                property real scalefactor: .45 - (arcStrokeWidth / 2)
+                property real arcStrokeWidth: 0.03
+                property real scalefactor: 0.45 - (arcStrokeWidth / 2)
                 property var chargecolor: Math.floor(batteryChargePercentage.percent / 33.35)
-                readonly property var colorArray: [ "red", "yellow", Qt.rgba(.318, 1, .051, .9)]
+                readonly property var colorArray: ["red", "yellow", Qt.rgba(0.318, 1, 0.051, 0.9)]
 
                 anchors.fill: parent
                 smooth: true
@@ -298,7 +334,7 @@ Item {
                     capStyle: ShapePath.RoundCap
                     joinStyle: ShapePath.MiterJoin
                     startX: chargeArc.width / 2
-                    startY: chargeArc.height * ( .5 - chargeArc.scalefactor)
+                    startY: chargeArc.height * (0.5 - chargeArc.scalefactor)
 
                     PathAngleArc {
                         centerX: chargeArc.width / 2
@@ -309,20 +345,24 @@ Item {
                         sweepAngle: chargeArc.angle
                         moveToStart: false
                     }
+
                 }
+
             }
 
             Icon {
                 id: batteryIcon
 
                 name: "ios-battery-charging"
+                visible: nightstandMode.active
+                width: parent.width * 0.14
+                height: parent.height * 0.14
+
                 anchors {
                     centerIn: parent
-                    verticalCenterOffset: -parent.width * .316
+                    verticalCenterOffset: -parent.width * 0.316
                 }
-                visible: nightstandMode.active
-                width: parent.width * .14
-                height: parent.height * .14
+
             }
 
             ColorOverlay {
@@ -334,21 +374,25 @@ Item {
             Text {
                 id: batteryPercent
 
+                visible: nightstandMode.active
+                color: chargeArc.colorArray[chargeArc.chargecolor]
+                style: Text.Outline
+                styleColor: "#80000000"
+                text: batteryChargePercentage.percent + "%"
+
                 anchors {
                     centerIn: parent
-                    verticalCenterOffset: parent.width * .324
+                    verticalCenterOffset: parent.width * 0.324
                 }
 
                 font {
-                    pixelSize: parent.width * .09
+                    pixelSize: parent.width * 0.09
                     family: "Titillium"
                     styleName: "ExtraCondensed"
                 }
-                visible: nightstandMode.active
-                color: chargeArc.colorArray[chargeArc.chargecolor]
-                style: Text.Outline; styleColor: "#80000000"
-                text: batteryChargePercentage.percent + "%"
+
             }
+
         }
 
         MceBatteryLevel {
@@ -356,38 +400,30 @@ Item {
         }
 
         Connections {
-            target: wallClock
             function onTimeChanged() {
-                if (displayAmbient) return
-                var hour = wallClock.time.getHours()
-                var minute = wallClock.time.getMinutes()
-                var second = wallClock.time.getSeconds()
-                if(secondCanvas.second !== second) {
-                    secondCanvas.second = second
-                    secondCanvas.requestPaint()
-                } if(hourCanvas.hour !== hour) {
-                    hourCanvas.hour = hour
-                }if(minuteCanvas.minute !== minute) {
-                    minuteCanvas.minute = minute
-                    minuteCanvas.requestPaint()
-                    hourCanvas.requestPaint()
+                if (displayAmbient)
+                    return ;
+
+                var hour = wallClock.time.getHours();
+                var minute = wallClock.time.getMinutes();
+                var second = wallClock.time.getSeconds();
+                if (secondCanvas.second !== second) {
+                    secondCanvas.second = second;
+                    secondCanvas.requestPaint();
+                }
+                if (hourCanvas.hour !== hour)
+                    hourCanvas.hour = hour;
+
+                if (minuteCanvas.minute !== minute) {
+                    minuteCanvas.minute = minute;
+                    minuteCanvas.requestPaint();
+                    hourCanvas.requestPaint();
                 }
             }
+
+            target: wallClock
         }
 
-        Component.onCompleted: {
-            var hour = wallClock.time.getHours()
-            var minute = wallClock.time.getMinutes()
-            var second = wallClock.time.getSeconds()
-            secondCanvas.second = second
-            secondCanvas.requestPaint()
-            minuteCanvas.minute = minute
-            minuteCanvas.requestPaint()
-            hourCanvas.hour = hour
-            hourCanvas.requestPaint()
-
-            burnInProtectionManager.widthOffset = Qt.binding(function() { return width * nightstandMode.active ? .08 : .3})
-            burnInProtectionManager.heightOffset = Qt.binding(function() { return height * nightstandMode.active ? .08 : .3})
-        }
     }
+
 }

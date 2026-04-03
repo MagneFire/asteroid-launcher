@@ -29,68 +29,219 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-import QtQuick 2.9
+import Connman 0.2
+import Nemo.Configuration 1.0
+import Nemo.DBus 2.0
+import Nemo.Mce 1.0
+import Nemo.Ngf 1.0
 import QtGraphicalEffects 1.15
 import QtMultimedia 5.8
+import QtQuick 2.9
 import org.asteroid.controls 1.0
-import org.asteroid.utils 1.0
 import org.asteroid.launcher 1.0
+import org.asteroid.utils 1.0
 import org.nemomobile.systemsettings 1.0
-import Nemo.Configuration 1.0
-import Nemo.Mce 1.0
-import Nemo.DBus 2.0
-import Nemo.Ngf 1.0
-import Connman 0.2
 
 Item {
     id: rootitem
-    width: parent.width
-    height: parent.height
 
     property bool forbidLeft: true
     property bool forbidRight: true
     property int toggleSize: Dims.l(28)
+    readonly property int volume: volumeControl ? (volumeControl.maximumVolume ? Math.round((volumeControl.volume / volumeControl.maximumVolume) * 100) : 0) : 0
+    readonly property bool isCharging: mceChargerType.type != MceChargerType.None
+    readonly property var toggleRegistry: {
+        const map = {
+            "lockButton": lockButtonComponent,
+            "settingsButton": settingsButtonComponent,
+            "brightnessToggle": brightnessToggleComponent,
+            "bluetoothToggle": bluetoothToggleComponent,
+            "hapticsToggle": hapticsToggleComponent,
+            "cinemaToggle": cinemaToggleComponent,
+            "aodToggle": aodToggleComponent,
+            "powerOffToggle": powerOffToggleComponent,
+            "rebootToggle": rebootToggleComponent,
+            "musicButton": musicButtonComponent,
+            "flashlightButton": flashlightButtonComponent
+        };
+        if (DeviceSpecs.hasWlan)
+            map["wifiToggle"] = wifiToggleComponent;
 
-    MceBatteryLevel { id: batteryChargePercentage }
-    MceBatteryState { id: batteryChargeState }
-    MceChargerType { id: mceChargerType }
+        if (DeviceSpecs.hasSpeaker)
+            map["soundToggle"] = soundToggleComponent;
 
-    readonly property int volume: volumeControl ? (volumeControl.maximumVolume ? Math.round((volumeControl.volume / volumeControl.maximumVolume) * 100) : 0) :0
+        const toggles = {
+        };
+        for (const key in map) {
+            if (toggleEnabled.value[key])
+                toggles[key] = map[key];
+
+        }
+        return toggles;
+    }
 
     function setVolume(volume) {
         volumeControl.volume = Math.round((volume / 100) * volumeControl.maximumVolume);
     }
 
-    readonly property bool isCharging: mceChargerType.type != MceChargerType.None
+    width: parent.width
+    height: parent.height
+    states: [
+        State {
+            name: "batteryBottom"
+            when: options.value.batteryBottom
 
-    AppLauncher { id: appLauncher }
+            AnchorChanges {
+                target: fixedRow
+                anchors.top: undefined
+                anchors.bottom: slidingRow.top
+            }
+
+            PropertyChanges {
+                target: fixedRow
+                anchors.topMargin: 0
+                anchors.bottomMargin: 0
+            }
+
+            AnchorChanges {
+                target: valueMeter
+                anchors.top: slidingRow.bottom
+                anchors.bottom: undefined
+            }
+
+            PropertyChanges {
+                target: valueMeter
+                anchors.topMargin: Dims.l(12)
+                anchors.bottomMargin: 0
+            }
+
+            AnchorChanges {
+                target: valueMeterCaption
+                anchors.top: valueMeter.bottom
+                anchors.bottom: undefined
+            }
+
+            PropertyChanges {
+                target: valueMeterCaption
+                anchors.topMargin: Dims.l(1)
+                anchors.bottomMargin: 0
+            }
+
+            AnchorChanges {
+                target: pageDots
+                anchors.top: slidingRow.bottom
+                anchors.bottom: undefined
+            }
+
+            PropertyChanges {
+                target: pageDots
+                anchors.topMargin: Dims.l(4)
+                anchors.bottomMargin: 0
+            }
+
+        },
+        State {
+            name: "batteryTop"
+            when: !options.value.batteryBottom
+
+            AnchorChanges {
+                target: fixedRow
+                anchors.top: slidingRow.bottom
+                anchors.bottom: undefined
+            }
+
+            PropertyChanges {
+                target: fixedRow
+                anchors.topMargin: Dims.l(4)
+                anchors.bottomMargin: 0
+            }
+
+            AnchorChanges {
+                target: valueMeter
+                anchors.top: undefined
+                anchors.bottom: slidingRow.top
+            }
+
+            PropertyChanges {
+                target: valueMeter
+                anchors.topMargin: 0
+                anchors.bottomMargin: Dims.l(12)
+            }
+
+            AnchorChanges {
+                target: valueMeterCaption
+                anchors.top: undefined
+                anchors.bottom: valueMeter.top
+            }
+
+            PropertyChanges {
+                target: valueMeterCaption
+                anchors.topMargin: 0
+                anchors.bottomMargin: Dims.l(1)
+            }
+
+            AnchorChanges {
+                target: pageDots
+                anchors.top: undefined
+                anchors.bottom: slidingRow.top
+            }
+
+            PropertyChanges {
+                target: pageDots
+                anchors.topMargin: 0
+                anchors.bottomMargin: Dims.l(4)
+            }
+
+        }
+    ]
+
+    MceBatteryLevel {
+        id: batteryChargePercentage
+    }
+
+    MceBatteryState {
+        id: batteryChargeState
+    }
+
+    MceChargerType {
+        id: mceChargerType
+    }
+
+    AppLauncher {
+        id: appLauncher
+    }
 
     ConfigurationValue {
         id: preMuteLevel
+
         key: "/desktop/asteroid/pre-mute-level"
         defaultValue: 80
     }
 
     ConfigurationValue {
         id: preCinemaAodState
+
         key: "/desktop/asteroid/quickpanel/pre-cinema-aod-state"
         defaultValue: true
     }
 
     ConfigurationValue {
         id: fixedToggles
+
         key: "/desktop/asteroid/quickpanel/fixed"
         defaultValue: ["lockButton", "settingsButton"]
     }
 
     ConfigurationValue {
         id: sliderToggles
+
         key: "/desktop/asteroid/quickpanel/slider"
         defaultValue: ["brightnessToggle", "bluetoothToggle", "hapticsToggle", "wifiToggle", "soundToggle", "cinemaToggle", "aodToggle", "powerOffToggle", "rebootToggle", "musicButton", "flashlightButton"]
     }
 
     ConfigurationValue {
         id: toggleEnabled
+
         key: "/desktop/asteroid/quickpanel/enabled"
         defaultValue: {
             "lockButton": true,
@@ -111,6 +262,7 @@ Item {
 
     ConfigurationValue {
         id: options
+
         key: "/desktop/asteroid/quickpanel/options"
         defaultValue: {
             "batteryBottom": true,
@@ -122,6 +274,7 @@ Item {
 
     DBusInterface {
         id: mce_dbus
+
         service: "com.nokia.mce"
         path: "/com/nokia/mce/request"
         iface: "com.nokia.mce.request"
@@ -130,160 +283,49 @@ Item {
 
     DBusInterface {
         id: login1DBus
+
         bus: DBus.SystemBus
         service: "org.freedesktop.login1"
         path: "/org/freedesktop/login1"
         iface: "org.freedesktop.login1.Manager"
     }
 
-    NonGraphicalFeedback { id: feedback; event: "press" }
-    ProfileControl { id: profileControl }
-    DisplaySettings { id: displaySettings }
+    NonGraphicalFeedback {
+        id: feedback
+
+        event: "press"
+    }
+
+    ProfileControl {
+        id: profileControl
+    }
+
+    DisplaySettings {
+        id: displaySettings
+    }
 
     SoundEffect {
         id: unmuteSound
+
         source: "file:///usr/share/sounds/notification.wav"
         volume: 0.8
     }
 
     NetworkTechnology {
         id: wifiStatus
+
         path: "/net/connman/technology/wifi"
-    }
-
-    states: [
-        State {
-            name: "batteryBottom"
-            when: options.value.batteryBottom
-
-            AnchorChanges {
-                target: fixedRow
-                anchors.top: undefined
-                anchors.bottom: slidingRow.top
-            }
-            PropertyChanges {
-                target: fixedRow
-                anchors.topMargin: 0
-                anchors.bottomMargin: 0
-            }
-
-            AnchorChanges {
-                target: valueMeter
-                anchors.top: slidingRow.bottom
-                anchors.bottom: undefined
-            }
-            PropertyChanges {
-                target: valueMeter
-                anchors.topMargin: Dims.l(12)
-                anchors.bottomMargin: 0
-            }
-
-            AnchorChanges {
-                target: valueMeterCaption
-                anchors.top: valueMeter.bottom
-                anchors.bottom: undefined
-            }
-            PropertyChanges {
-                target: valueMeterCaption
-                anchors.topMargin: Dims.l(1)
-                anchors.bottomMargin: 0
-            }
-
-            AnchorChanges {
-                target: pageDots
-                anchors.top: slidingRow.bottom
-                anchors.bottom: undefined
-            }
-            PropertyChanges {
-                target: pageDots
-                anchors.topMargin: Dims.l(4)
-                anchors.bottomMargin: 0
-            }
-        },
-        State {
-            name: "batteryTop"
-            when: !options.value.batteryBottom
-
-            AnchorChanges {
-                target: fixedRow
-                anchors.top: slidingRow.bottom
-                anchors.bottom: undefined
-            }
-            PropertyChanges {
-                target: fixedRow
-                anchors.topMargin: Dims.l(4)
-                anchors.bottomMargin: 0
-            }
-
-            AnchorChanges {
-                target: valueMeter
-                anchors.top: undefined
-                anchors.bottom: slidingRow.top
-            }
-            PropertyChanges {
-                target: valueMeter
-                anchors.topMargin: 0
-                anchors.bottomMargin: Dims.l(12)
-            }
-
-            AnchorChanges {
-                target: valueMeterCaption
-                anchors.top: undefined
-                anchors.bottom: valueMeter.top
-            }
-            PropertyChanges {
-                target: valueMeterCaption
-                anchors.topMargin: 0
-                anchors.bottomMargin: Dims.l(1)
-            }
-
-            AnchorChanges {
-                target: pageDots
-                anchors.top: undefined
-                anchors.bottom: slidingRow.top
-            }
-            PropertyChanges {
-                target: pageDots
-                anchors.topMargin: 0
-                anchors.bottomMargin: Dims.l(4)
-            }
-        }
-    ]
-
-    readonly property var toggleRegistry: {
-        const map = {
-            "lockButton": lockButtonComponent,
-            "settingsButton": settingsButtonComponent,
-            "brightnessToggle": brightnessToggleComponent,
-            "bluetoothToggle": bluetoothToggleComponent,
-            "hapticsToggle": hapticsToggleComponent,
-            "cinemaToggle": cinemaToggleComponent,
-            "aodToggle": aodToggleComponent,
-            "powerOffToggle": powerOffToggleComponent,
-            "rebootToggle": rebootToggleComponent,
-            "musicButton": musicButtonComponent,
-            "flashlightButton": flashlightButtonComponent
-        };
-
-        if (DeviceSpecs.hasWlan) {
-            map["wifiToggle"] = wifiToggleComponent;
-        }
-        if (DeviceSpecs.hasSpeaker) {
-            map["soundToggle"] = soundToggleComponent;
-        }
-
-        const toggles = {};
-        for (const key in map) {
-            if (toggleEnabled.value[key]) {
-                toggles[key] = map[key];
-            }
-        }
-
-        return toggles;
     }
 
     ListView {
         id: fixedRow
+
+        readonly property var allToggles: {
+            return fixedToggles.value.map((id) => {
+                return toggleRegistry[id];
+            }).filter(Boolean);
+        }
+
         anchors.horizontalCenter: parent.horizontalCenter
         width: toggleSize * 2 + spacing
         height: toggleSize
@@ -293,51 +335,59 @@ Item {
         interactive: false
         boundsBehavior: Flickable.StopAtBounds
         spacing: Dims.l(4)
-
-        readonly property var allToggles: {
-            return fixedToggles.value
-                .map(id => toggleRegistry[id])
-                .filter(Boolean)
-        }
-
         model: [allToggles]
-
         contentWidth: width
+        Component.onCompleted: positionViewAtBeginning()
 
         delegate: Item {
             id: pageItem
+
             width: fixedRow.width
             height: fixedRow.height
 
             Row {
                 id: toggleRow
+
                 spacing: Dims.l(8)
+                anchors.horizontalCenter: parent.horizontalCenter
+
                 Repeater {
                     model: modelData
+
                     delegate: Loader {
                         width: toggleSize - Dims.l(4)
                         height: width
                         sourceComponent: modelData
                     }
+
                 }
-                anchors.horizontalCenter: parent.horizontalCenter
+
             }
+
         }
 
-        Component.onCompleted: positionViewAtBeginning()
     }
 
     Connections {
-        target: grid
         function onCurrentVerticalPosChanged() {
-            if (grid.currentVerticalPos === -1) {
-                slidingRow.positionViewAtBeginning()
-            }
+            if (grid.currentVerticalPos === -1)
+                slidingRow.positionViewAtBeginning();
+
         }
+
+        target: grid
     }
 
     ListView {
         id: slidingRow
+
+        readonly property var allToggles: {
+            return sliderToggles.value.map((id) => {
+                return toggleRegistry[id];
+            }).filter(Boolean);
+        }
+        property int rowCount: Math.ceil(allToggles.length / 3)
+
         anchors.centerIn: parent
         width: toggleSize * 3 + spacing * 2
         height: toggleSize
@@ -347,15 +397,6 @@ Item {
         interactive: true
         boundsBehavior: Flickable.StopAtBounds
         spacing: Dims.l(4)
-
-        readonly property var allToggles: {
-            return sliderToggles.value
-                .map(id => toggleRegistry[id])
-                .filter(Boolean)
-        }
-
-        property int rowCount: Math.ceil(allToggles.length / 3)
-
         model: {
             const rows = [];
             for (let i = 0; i < allToggles.length; i += 3) {
@@ -363,61 +404,132 @@ Item {
             }
             return rows;
         }
-
         contentWidth: width * rowCount
+        Component.onCompleted: positionViewAtBeginning()
+        onContentXChanged: {
+            const newIndex = Math.round(contentX / width);
+            if (newIndex >= 0 && newIndex < rowCount)
+                currentIndex = newIndex;
+
+        }
 
         delegate: Item {
             id: pageItem
+
             width: slidingRow.width
             height: slidingRow.height
 
             Row {
                 id: toggleRow
+
                 spacing: slidingRow.spacing
+                anchors.horizontalCenter: parent.horizontalCenter
+
                 Repeater {
                     model: modelData
+
                     delegate: Loader {
                         width: toggleSize
                         height: toggleSize
                         sourceComponent: modelData
                     }
+
                 }
-                anchors.horizontalCenter: parent.horizontalCenter
+
             }
+
         }
 
-        Component.onCompleted: positionViewAtBeginning()
-
-        onContentXChanged: {
-            const newIndex = Math.round(contentX / width)
-            if (newIndex >= 0 && newIndex < rowCount) currentIndex = newIndex
-        }
     }
 
     ValueMeter {
         id: valueMeter
+
+        property Timer fadeOutTimer: fadeOutTimer
+
+        // Signal to notify toggles to reset direction
+        signal resetDirection()
+
         width: toggleSize * 1.8
         height: Dims.l(8)
         valueLowerBound: 0
         valueUpperBound: 100
         anchors.horizontalCenter: parent.horizontalCenter
-        property Timer fadeOutTimer: fadeOutTimer
+        value: batteryChargePercentage.percent
+        isIncreasing: valueMeter.state == "" ? isCharging : false
+        enableAnimations: options.value.batteryAnimation && valueMeter.state == ""
+        particleDesign: options.value.particleDesign
+        fillColor: {
+            if (!options.value.batteryColored)
+                return Qt.rgba(1, 1, 1, 0.3);
+
+            if (!valueMeter.state == "")
+                return "#4CA6005F";
+
+            const percent = batteryChargePercentage.percent;
+            if (percent <= 20) {
+                const t = (20 - percent) / 20;
+                return Qt.rgba(1, 0.65 * (1 - t), 0, 0.3);
+            }
+            if (percent <= 50) {
+                const t = (50 - percent) / 30;
+                return Qt.rgba(t, 1 - (t * 0.35), 0, 0.3);
+            }
+            return Qt.rgba(0, 1, 0, 0.3);
+        }
+        states: [
+            State {
+                name: "brightness"
+
+                PropertyChanges {
+                    target: valueMeter
+                    value: displaySettings.brightness
+                }
+
+                PropertyChanges {
+                    target: flashIcon
+                    visible: false
+                }
+                //% "Brightness"
+
+                PropertyChanges {
+                    target: valueMeterCaption
+                    text: qsTrId("id-brightness")
+                }
+
+                PropertyChanges {
+                    target: flashIcon
+                    visible: false
+                }
+
+            },
+            State {
+                name: "volume"
+
+                PropertyChanges {
+                    target: valueMeter
+                    value: volume
+                }
+                //% "Volume"
+
+                PropertyChanges {
+                    target: valueMeterCaption
+                    text: qsTrId("id-volume")
+                }
+
+            }
+        ]
 
         Timer {
             id: fadeOutTimer
+
             interval: 2000
             onTriggered: {
-                valueMeter.state = ""
-
+                valueMeter.state = "";
                 // Signal toggles to reset direction
-                valueMeter.resetDirection()
+                valueMeter.resetDirection();
             }
         }
-
-        value: batteryChargePercentage.percent
-
-        // Signal to notify toggles to reset direction
-        signal resetDirection
 
         // Animate value changes for smooth fill width transitions
         Behavior on value {
@@ -425,91 +537,130 @@ Item {
                 duration: 250
                 easing.type: Easing.InOutQuad
             }
-        }
 
-        isIncreasing: valueMeter.state == "" ? isCharging : false
-        enableAnimations: options.value.batteryAnimation && valueMeter.state == ""
-        particleDesign: options.value.particleDesign
-
-        fillColor: {
-            if (!options.value.batteryColored) return Qt.rgba(1, 1, 1, 0.3)
-            if (!valueMeter.state == "") return "#4CA6005F"
-
-            const percent = batteryChargePercentage.percent
-            if (percent <= 20) {
-                const t = (20 - percent) / 20
-                return Qt.rgba(1, 0.65 * (1 - t), 0, 0.3)
-            }
-            if (percent <= 50) {
-                const t = (50 - percent) / 30
-                return Qt.rgba(t, 1 - (t * 0.35), 0, 0.3)
-            }
-            return Qt.rgba(0, 1, 0, 0.3)
         }
 
         // Use behavior for fill color transitions
         Behavior on fillColor {
-            ColorAnimation { duration: 300 }
+            ColorAnimation {
+                duration: 300
+            }
+
         }
 
-        states: [
-            State {
-                name: "brightness"
-                PropertyChanges { target: valueMeter; value: displaySettings.brightness }
-                PropertyChanges { target: flashIcon; visible: false }
-                //% "Brightness"
-                PropertyChanges { target: valueMeterCaption; text: qsTrId("id-brightness") }
-                PropertyChanges { target: flashIcon; visible: false }
-            },
-            State {
-                name: "volume"
-                PropertyChanges { target: valueMeter; value: volume }
-                //% "Volume"
-                PropertyChanges { target: valueMeterCaption; text: qsTrId("id-volume") }
-            }
-        ]
         transitions: Transition {
             SequentialAnimation {
                 ParallelAnimation {
-                    NumberAnimation { target: valueMeter; property: "opacity"; duration: 125; to: 0 }
-                    NumberAnimation { target: valueMeterCaption; property: "opacity"; duration: 125; to: 0 }
-                    NumberAnimation { target: flashIcon; property: "opacity"; duration: 125; to: 0 }
+                    NumberAnimation {
+                        target: valueMeter
+                        property: "opacity"
+                        duration: 125
+                        to: 0
+                    }
+
+                    NumberAnimation {
+                        target: valueMeterCaption
+                        property: "opacity"
+                        duration: 125
+                        to: 0
+                    }
+
+                    NumberAnimation {
+                        target: flashIcon
+                        property: "opacity"
+                        duration: 125
+                        to: 0
+                    }
+
                 }
+
                 ParallelAnimation {
-                    PropertyAnimation { target: valueMeter; property: "value"; duration: 0 }
-                    PropertyAnimation { target: valueMeterCaption; property: "text"; duration: 0 }
-                    PropertyAnimation { target: flashIcon; property: "visible"; duration: 0 }
+                    PropertyAnimation {
+                        target: valueMeter
+                        property: "value"
+                        duration: 0
+                    }
+
+                    PropertyAnimation {
+                        target: valueMeterCaption
+                        property: "text"
+                        duration: 0
+                    }
+
+                    PropertyAnimation {
+                        target: flashIcon
+                        property: "visible"
+                        duration: 0
+                    }
+
                 }
+
                 ParallelAnimation {
-                    NumberAnimation { target: valueMeter; property: "opacity"; duration: 125; to: 1 }
-                    NumberAnimation { target: valueMeterCaption; property: "opacity"; duration: 125; to: 1 }
-                    NumberAnimation { target: flashIcon; property: "opacity"; duration: 125; to: 1 }
+                    NumberAnimation {
+                        target: valueMeter
+                        property: "opacity"
+                        duration: 125
+                        to: 1
+                    }
+
+                    NumberAnimation {
+                        target: valueMeterCaption
+                        property: "opacity"
+                        duration: 125
+                        to: 1
+                    }
+
+                    NumberAnimation {
+                        target: flashIcon
+                        property: "opacity"
+                        duration: 125
+                        to: 1
+                    }
+
                 }
+
             }
+
         }
+
     }
 
     Icon {
         id: flashIcon
+
         width: Dims.l(8)
         height: Dims.l(8)
         name: "ios-flash"
         anchors.centerIn: valueMeter
         y: -Dims.l(10)
         visible: isCharging
-        opacity: 1.0
+        opacity: 1
 
         SequentialAnimation on opacity {
             running: isCharging && options.value.batteryAnimation
             loops: Animation.Infinite
-            NumberAnimation { to: 0.7; duration: 1500; easing.type: Easing.InOutQuad }
-            NumberAnimation { to: 1.0; duration: 1500; easing.type: Easing.InOutQuad }
+
+            NumberAnimation {
+                to: 0.7
+                duration: 1500
+                easing.type: Easing.InOutQuad
+            }
+
+            NumberAnimation {
+                to: 1
+                duration: 1500
+                easing.type: Easing.InOutQuad
+            }
+
         }
+
     }
 
     Label {
         id: valueMeterCaption
+
         anchors.horizontalCenter: parent.horizontalCenter
+        text: batteryChargePercentage.percent + "%"
 
         font {
             pixelSize: Dims.l(9)
@@ -517,13 +668,11 @@ Item {
             styleName: "Condensed Medium"
         }
 
-        text: batteryChargePercentage.percent + "%"
-
     }
-
 
     PageDot {
         id: pageDots
+
         height: Dims.l(4)
         anchors.horizontalCenter: parent.horizontalCenter
         currentIndex: slidingRow.currentIndex
@@ -533,6 +682,7 @@ Item {
 
     RemorseTimer {
         id: remorseTimer
+
         duration: 3000
         gaugeSegmentAmount: 6
         gaugeStartDegree: -130
@@ -543,53 +693,53 @@ Item {
 
     Component {
         id: brightnessToggleComponent
+
         QuickPanelToggle {
             id: brightnessToggle
+
             icon: "ios-sunny"
             checkable: true
             rangeBased: true
             rangeMin: 0
             rangeMax: 100
             rangeStepSize: 10
-
             checked: displaySettings.brightness > 10
-
             onClicked: {
-                if(checked) {
-                    displaySettings.brightness = rangeMin
-                    isIncreasing = true
+                if (checked) {
+                    displaySettings.brightness = rangeMin;
+                    isIncreasing = true;
                 } else {
-                    displaySettings.brightness = rangeMax
-                    isIncreasing = false
+                    displaySettings.brightness = rangeMax;
+                    isIncreasing = false;
                 }
             }
-
             rangeValue: displaySettings.brightness
-
             onPressed: valueMeter.state = "brightness"
             onReleased: valueMeter.fadeOutTimer.restart()
-
             onRangeValueChanged: displaySettings.brightness = rangeValue
 
             Connections {
-                target: valueMeter
                 function onResetDirection() {
-                    isIncreasing = true
+                    isIncreasing = true;
                 }
+
+                target: valueMeter
             }
+
         }
+
     }
 
     Component {
         id: hapticsToggleComponent
+
         QuickPanelToggle {
             icon: "ios-watch-vibrating"
             checkable: true
             checked: profileControl.profile == "general"
-
             onClicked: {
-                if(checked) {
-                    profileControl.profile = "silent"
+                if (checked) {
+                    profileControl.profile = "silent";
                 } else {
                     profileControl.profile = "general";
                     feedbackDelayTimer.start();
@@ -598,143 +748,138 @@ Item {
 
             Timer {
                 id: feedbackDelayTimer
+
                 interval: 125
                 repeat: false
                 onTriggered: feedback.play()
             }
+
         }
+
     }
 
     Component {
         id: wifiToggleComponent
+
         QuickPanelToggle {
             icon: wifiStatus.connected ? "ios-wifi" : "ios-wifi-outline"
-
             checkable: true
             checked: wifiStatus.powered
-
             onClicked: {
-                wifiStatus.powered = !checked
+                wifiStatus.powered = !checked;
             }
         }
+
     }
 
     Component {
         id: bluetoothToggleComponent
+
         QuickPanelToggle {
             id: bluetoothToggle
 
             icon: btStatus.connected ? "ios-bluetooth-connected" : "ios-bluetooth"
-
             checkable: true
             checked: btStatus.powered
+            onClicked: {
+                btStatus.powered = !checked;
+            }
+
             BluetoothStatus {
                 id: btStatus
             }
 
-            onClicked: {
-                btStatus.powered = !checked
-            }
         }
+
     }
 
     Component {
         id: soundToggleComponent
+
         QuickPanelToggle {
             id: soundToggle
-            checkable: true
 
+            checkable: true
             rangeBased: true
             rangeMin: 0
             rangeMax: 100
             rangeStepSize: 10
-
             onPressAndHold: {
-                rangeValue = volume
-
+                rangeValue = volume;
                 if (preMuteLevel.value > 0) {
                     const tempVolume = volume;
                     setVolume(preMuteLevel.value);
                     preMuteLevel.value = tempVolume;
-
                     toggled = true;
                 }
             }
-
             onPressed: valueMeter.state = "volume"
             onReleased: {
-                valueMeter.fadeOutTimer.restart()
-
-                if (volume > 0 && preMuteLevel.value === 0) {
+                valueMeter.fadeOutTimer.restart();
+                if (volume > 0 && preMuteLevel.value === 0)
                     soundDelayTimer.start();
-                }
+
             }
-
-
             onRangeValueChanged: setVolume(rangeValue)
-
-            icon: preMuteLevel.value > 0 || volume === 0 ? "ios-sound-indicator-mute" :
-                  volume > 70 ? "ios-sound-indicator-high" :
-                  volume > 30 ? "ios-sound-indicator-mid" :
-                  volume > 0 ? "ios-sound-indicator-low" : "ios-sound-indicator-off"
-
+            icon: preMuteLevel.value > 0 || volume === 0 ? "ios-sound-indicator-mute" : volume > 70 ? "ios-sound-indicator-high" : volume > 30 ? "ios-sound-indicator-mid" : volume > 0 ? "ios-sound-indicator-low" : "ios-sound-indicator-off"
             onClicked: {
                 const tempVolume = volume;
                 let targetVolume = preMuteLevel.value;
-
-                if (tempVolume === 0 &&  targetVolume === 0) {
+                if (tempVolume === 0 && targetVolume === 0)
                     targetVolume = 100;
-                }
 
                 setVolume(targetVolume);
                 preMuteLevel.value = tempVolume;
-
-                if (targetVolume > 0) {
+                if (targetVolume > 0)
                     soundDelayTimer.start();
-                }
-            }
 
+            }
             checked: !(preMuteLevel.value > 0 || volume === 0)
 
             Timer {
                 id: soundDelayTimer
+
                 interval: 150
                 repeat: false
                 onTriggered: unmuteSound.play()
             }
 
             Connections {
-                target: volumeControl
                 function onVolumeChanged() {
-                    if(!pressed) {
-                        rangeValue = volume
-                    }
+                    if (!pressed)
+                        rangeValue = volume;
+
                 }
+
+                target: volumeControl
             }
 
             Connections {
-                target: valueMeter
                 function onResetDirection() {
-                    isIncreasing = true
+                    isIncreasing = true;
                 }
+
+                target: valueMeter
             }
+
         }
+
     }
 
     Component {
         id: cinemaToggleComponent
+
         QuickPanelToggle {
             id: cinemaToggle
-            icon: "ios-film-outline"
 
             property bool isMuted: DeviceSpecs.hasSpeaker ? preMuteLevel.value > 0 : true
-            property bool actualState: isMuted && !alwaysOnDisplay.value;
+            property bool actualState: isMuted && !alwaysOnDisplay.value
 
+            icon: "ios-film-outline"
             checkable: true
-
             checked: actualState
             onClicked: {
-                if(checked) {
+                if (checked) {
                     // Store pre-cinema states
                     preCinemaAodState.value = alwaysOnDisplay.value;
                     // Mute sound if available
@@ -756,57 +901,69 @@ Item {
                 }
             }
         }
+
     }
 
     Component {
         id: lockButtonComponent
+
         QuickPanelToggle {
             id: lockedToggle
+
             icon: "ios-unlock"
             onClicked: mce_dbus.call("req_display_state_lpm", undefined)
         }
+
     }
 
     Component {
         id: settingsButtonComponent
+
         QuickPanelToggle {
             icon: "ios-settings"
             onClicked: appLauncher.launchApp("asteroid-settings")
         }
+
     }
 
     Component {
         id: musicButtonComponent
+
         QuickPanelToggle {
             icon: "ios-musical-notes-outline"
             onClicked: appLauncher.launchApp("asteroid-music")
         }
+
     }
 
     Component {
         id: flashlightButtonComponent
+
         QuickPanelToggle {
             icon: "ios-bulb-outline"
             onClicked: appLauncher.launchApp("asteroid-flashlight")
         }
+
     }
 
     Component {
         id: aodToggleComponent
+
         QuickPanelToggle {
             icon: alwaysOnDisplay.value ? "ios-watch-aod-on" : "ios-watch-aod-off"
             checkable: true
             checked: alwaysOnDisplay.value
-
             onClicked: {
                 alwaysOnDisplay.value = !checked;
                 displaySettings.lowPowerModeEnabled = alwaysOnDisplay.value;
             }
         }
+
     }
 
     Component {
         id: powerOffToggleComponent
+
         QuickPanelToggle {
             icon: "ios-power-outline"
             onClicked: {
@@ -818,10 +975,12 @@ Item {
                 remorseTimer.start();
             }
         }
+
     }
 
     Component {
         id: rebootToggleComponent
+
         QuickPanelToggle {
             icon: "ios-sync"
             onClicked: {
@@ -834,5 +993,7 @@ Item {
                 remorseTimer.start();
             }
         }
+
     }
+
 }
