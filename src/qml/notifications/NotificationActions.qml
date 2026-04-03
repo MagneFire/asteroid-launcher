@@ -32,70 +32,75 @@ import org.asteroid.controls 1.0
 import org.asteroid.launcher 1.0
 
 Item {
+    //% "Now"
+
     id: actions
 
     property QtObject panelsGrid
     property QtObject notification
     property QtObject notificationModel
-
-    property bool forbidLeft:  true
+    property bool forbidLeft: true
     property bool forbidRight: true
     property bool forbidBottom: false
-
     property string timestampStr: ""
 
-    onNotificationChanged: {
-        if(notification !== undefined && notification !== null)
-            updateTimestamp()
-    }
-
     function updateTimestamp() {
-        var currentTime = new Date
-        var delta = (currentTime.getTime() - notification.timestamp.getTime())
-
-        if(delta < 60*1000)
-            //% "Now"
-            timestampStr = qsTrId("id-now") + localeManager.changesObserver
-        else {
-            delta = parseInt(delta/(1000*60))
-            if(delta < 60) {
+        var currentTime = new Date;
+        var delta = (currentTime.getTime() - notification.timestamp.getTime());
+        if (delta < 60 * 1000) {
+            timestampStr = qsTrId("id-now") + localeManager.changesObserver;
+        } else {
+            delta = parseInt(delta / (1000 * 60));
+            if (delta < 60) {
                 //% "m"
-                timestampStr = delta + qsTrId("id-minute-abbrev") + localeManager.changesObserver
+                timestampStr = delta + qsTrId("id-minute-abbrev") + localeManager.changesObserver;
             } else {
-                delta = parseInt(delta/60)
-                if(delta < 60) {
+                delta = parseInt(delta / 60);
+                if (delta < 60) {
                     //% "h"
-                    timestampStr = delta + qsTrId("id-hour-abbrev") + localeManager.changesObserver
+                    timestampStr = delta + qsTrId("id-hour-abbrev") + localeManager.changesObserver;
                 } else {
-                    delta = parseInt(delta/24)
+                    delta = parseInt(delta / 24);
                     //% "d"
-                    timestampStr = delta + qsTrId("id-day-abbrev") + localeManager.changesObserver
+                    timestampStr = delta + qsTrId("id-day-abbrev") + localeManager.changesObserver;
                 }
             }
         }
     }
 
-    Connections {
-        target: panelsGrid
-        function onCurrentHorizontalPosChanged() {
-            if(forbidBottom)
-                layerStack.pop(layerStack.currentLayer)
-            updateTimestamp()
-        }
+    onNotificationChanged: {
+        if (notification !== undefined && notification !== null)
+            updateTimestamp();
+
     }
 
-    NotificationSnoozer { id: snoozer }
+    Connections {
+        function onCurrentHorizontalPosChanged() {
+            if (forbidBottom)
+                layerStack.pop(layerStack.currentLayer);
+
+            updateTimestamp();
+        }
+
+        target: panelsGrid
+    }
+
+    NotificationSnoozer {
+        id: snoozer
+    }
 
     LayerStack {
         id: layerStack
+
         win: null
         firstPage: actionsComponent
         onLayersChanged: {
-            actions.forbidBottom = layers.length > 0
-            leftIndicator.visible = layers.length > 0
-            leftIndicator.animateFar()
-            if(panelsGrid !== null)
-                panelsGrid.changeAllowedDirections()
+            actions.forbidBottom = layers.length > 0;
+            leftIndicator.visible = layers.length > 0;
+            leftIndicator.animateFar();
+            if (panelsGrid !== null)
+                panelsGrid.changeAllowedDirections();
+
         }
     }
 
@@ -124,11 +129,11 @@ Item {
                     width: parent.width
                     height: Dims.h(20)
                     onClicked: {
-                        for(var i = 0 ; i < notificationModel.itemCount ; i++) {
-                            var notifI = notificationModel.get(i)
-                            if (notifI.userRemovable) {
-                                notifI.removeRequested()
-                            }
+                        for (var i = 0; i < notificationModel.itemCount; i++) {
+                            var notifI = notificationModel.get(i);
+                            if (notifI.userRemovable)
+                                notifI.removeRequested();
+
                         }
                     }
                 }
@@ -138,10 +143,17 @@ Item {
                     text: qsTrId("id-dismiss") + localeManager.changesObserver
                     width: parent.width
                     height: Dims.h(20)
-                    onClicked: if (notification.userRemovable) notification.removeRequested()
+                    onClicked: {
+                        if (notification.userRemovable)
+                            notification.removeRequested();
+
+                    }
                 }
+
             }
+
         }
+
     }
 
     Component {
@@ -149,10 +161,12 @@ Item {
 
         Item {
             id: snoozeLayerContent
+
             property var pop
 
             PageHeader {
                 id: title
+
                 //% "Snooze"
                 text: qsTrId("id-snooze")
             }
@@ -167,8 +181,9 @@ Item {
                     //% "m"
                     text: "10" + qsTrId("id-minute-abbrev") + localeManager.changesObserver
                     onClicked: {
-                        if(snoozer.snooze(notification, 10))
-                            notification.removeRequested()
+                        if (snoozer.snooze(notification, 10))
+                            notification.removeRequested();
+
                     }
                     width: Dims.l(26)
                     height: width
@@ -178,8 +193,9 @@ Item {
                     //% "m"
                     text: "30" + qsTrId("id-minute-abbrev") + localeManager.changesObserver
                     onClicked: {
-                        if(snoozer.snooze(notification, 30))
-                            notification.removeRequested()
+                        if (snoozer.snooze(notification, 30))
+                            notification.removeRequested();
+
                     }
                     width: Dims.l(26)
                     height: width
@@ -189,8 +205,9 @@ Item {
                     //% "h"
                     text: "1" + qsTrId("id-hour-abbrev") + localeManager.changesObserver
                     onClicked: {
-                        if(snoozer.snooze(notification, 60))
-                            notification.removeRequested()
+                        if (snoozer.snooze(notification, 60))
+                            notification.removeRequested();
+
                     }
                     width: Dims.l(26)
                     height: width
@@ -200,14 +217,18 @@ Item {
                     //% "h"
                     text: "3" + qsTrId("id-hour-abbrev") + localeManager.changesObserver
                     onClicked: {
-                        if(snoozer.snooze(notification, 180))
-                            notification.removeRequested()
+                        if (snoozer.snooze(notification, 180))
+                            notification.removeRequested();
+
                     }
                     width: Dims.l(26)
                     height: width
                 }
+
             }
+
         }
+
     }
 
     Row {
@@ -216,19 +237,22 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
 
         Icon {
+            function noicon(str) {
+                return str === "" || str === null || str === undefined;
+            }
+
             name: {
-                if(notification==null)
+                if (notification == null)
                     return "";
 
-                function noicon(str) {
-                    return str === "" || str === null || str === undefined;
-                }
                 // icon for asteroid internal, appIcon for notifications from android
-                if(noicon(notification.icon) && noicon(notification.appIcon))
+                if (noicon(notification.icon) && noicon(notification.appIcon))
                     return "ios-mail-outline";
-                if(noicon(notification.icon) && !noicon(notification.appIcon))
+
+                if (noicon(notification.icon) && !noicon(notification.appIcon))
                     return notification.appIcon;
-                if(!noicon(notification.icon) && noicon(notification.appIcon))
+
+                if (!noicon(notification.icon) && noicon(notification.appIcon))
                     return notification.icon;
 
                 // prefer asteroid internal
@@ -240,11 +264,18 @@ Item {
 
         Label {
             id: timestamp
+
             color: "#b0b0b0"
             text: timestampStr
             font.pixelSize: Dims.l(6)
         }
+
     }
 
-    Indicator { id: leftIndicator; edge: Qt.LeftEdge }
+    Indicator {
+        id: leftIndicator
+
+        edge: Qt.LeftEdge
+    }
+
 }

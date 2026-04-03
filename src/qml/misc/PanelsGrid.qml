@@ -31,207 +31,227 @@ import QtQuick 2.9
 import org.asteroid.launcher 1.0
 
 GestureFilterArea {
+    // Panels handling
+    // Swipe handling
+
     id: panelsGrid
 
     property real normalizedHorOffset: 0
     property real normalizedVerOffset: 0
-
-    /* Item that will move according to the user's needs */
-    Item {
-        id: content
-        onXChanged: if(normalizedVerOffset == 0) normalizedHorOffset = Math.min(Math.max(-(content.x/panelWidth),  -1), 1)
-        onYChanged: if(normalizedHorOffset == 0) normalizedVerOffset = Math.min(Math.max(-(content.y/panelHeight), -1), 1)
-    }
-
-    /* Panels handling */
-
-    property var panels: {'dummyVal': undefined} /* Map of panels, indexed by position */
-    property alias panelWidth:  panelsGrid.width
+    property var panels: {
+        "dummyVal": undefined
+    } // Map of panels, indexed by position
+    property alias panelWidth: panelsGrid.width
     property alias panelHeight: panelsGrid.height
+    // Possible directions handling
+    property int currentVerticalPos: 0
+    property int currentHorizontalPos: 0
+    property alias contentX: content.x
+    property alias contentY: content.y
 
     function addPanel(horizontalPos, verticalPos, component) {
         if (component.status === Component.Ready) {
-            var panel = component.createObject(content)
+            var panel = component.createObject(content);
+            panel.x = panelWidth * horizontalPos;
+            panel.y = panelHeight * verticalPos;
+            panel.width = panelWidth;
+            panel.height = panelHeight;
+            if (panel.panelsGrid !== undefined)
+                panel.panelsGrid = panelsGrid;
 
-            panel.x = panelWidth*horizontalPos
-            panel.y = panelHeight*verticalPos
-            panel.width = panelWidth
-            panel.height = panelHeight
-            if(panel.panelsGrid !== undefined)
-                panel.panelsGrid = panelsGrid
-            panels[horizontalPos + "x" + verticalPos] = panel
-            return panel
+            panels[horizontalPos + "x" + verticalPos] = panel;
+            return panel;
         }
     }
 
     function removePanel(horizontalPos, verticalPos) {
-        var panel = panels[horizontalPos + "x" + verticalPos]
-        if(panel !== undefined)
-            panel.destroy()
-        panels[horizontalPos + "x" + verticalPos] = undefined
+        var panel = panels[horizontalPos + "x" + verticalPos];
+        if (panel !== undefined)
+            panel.destroy();
+
+        panels[horizontalPos + "x" + verticalPos] = undefined;
     }
 
     function movePanel(originHorizontalPos, originVerticalPos, destHorizontalPos, destVerticalPos) {
-        var panel = panels[originHorizontalPos + "x" + originVerticalPos]
-        if(panel !== undefined) {
-            panels[destHorizontalPos + "x" + destVerticalPos] = panel
-            panel.x = panelWidth*destHorizontalPos
-            panel.y = panelHeight*destVerticalPos
-            panels[originHorizontalPos + "x" + originVerticalPos] = undefined
+        var panel = panels[originHorizontalPos + "x" + originVerticalPos];
+        if (panel !== undefined) {
+            panels[destHorizontalPos + "x" + destVerticalPos] = panel;
+            panel.x = panelWidth * destHorizontalPos;
+            panel.y = panelHeight * destVerticalPos;
+            panels[originHorizontalPos + "x" + originVerticalPos] = undefined;
         }
     }
 
     function moveTo(posX, posY) {
-        content.x = -panelWidth*posX
-        content.y = -panelHeight*posY
-        currentHorizontalPos = posX
-        currentVerticalPos = posY
+        content.x = -panelWidth * posX;
+        content.y = -panelHeight * posY;
+        currentHorizontalPos = posX;
+        currentVerticalPos = posY;
     }
 
     function hideOffscreen() {
-        var currentPanelName = currentHorizontalPos + "x" + currentVerticalPos
-        for(var name in panels) {
-            if(panels[name] !== undefined) {
-                if (name.localeCompare(currentPanelName) !==0)  panels[name].visible = false
+        var currentPanelName = currentHorizontalPos + "x" + currentVerticalPos;
+        for (var name in panels) {
+            if (panels[name] !== undefined) {
+                if (name.localeCompare(currentPanelName) !== 0)
+                    panels[name].visible = false;
+
             }
         }
     }
-
-    onWidthChanged: {
-        for(var name in panels) {
-            if(panels[name] !== undefined) {
-                var horizontalPos = name.split('x')[0]
-                panels[name].x = panelWidth*horizontalPos
-                panels[name].width = panelWidth
-            }
-        }
-    }
-
-    onHeightChanged: {
-        for(var name in panels) {
-            if(panels[name] !== undefined) {
-                var verticalPos = name.split('x')[1]
-                panels[name].y = panelHeight*verticalPos
-                panels[name].height = panelHeight
-            }
-        }
-    }
-
-    /* Possible directions handling */
-    property int currentVerticalPos:   0
-    property int currentHorizontalPos: 0
 
     function changeAllowedDirections() {
-        var currentPanel = panels[currentHorizontalPos + "x" + currentVerticalPos]
-        if(currentPanel === undefined) return
+        var currentPanel = panels[currentHorizontalPos + "x" + currentVerticalPos];
+        if (currentPanel === undefined)
+            return ;
 
-        var currentPanelName = currentHorizontalPos + "x" + currentVerticalPos
-        var topPanelName =     currentHorizontalPos + "x" + (currentVerticalPos-1)
-        var bottomPanelName =  currentHorizontalPos + "x" + (currentVerticalPos+1)
-        var leftPanelName =    (currentHorizontalPos-1) + "x" + currentVerticalPos
-        var rightPanelName =   (currentHorizontalPos+1) + "x" + currentVerticalPos
+        var currentPanelName = currentHorizontalPos + "x" + currentVerticalPos;
+        var topPanelName = currentHorizontalPos + "x" + (currentVerticalPos - 1);
+        var bottomPanelName = currentHorizontalPos + "x" + (currentVerticalPos + 1);
+        var leftPanelName = (currentHorizontalPos - 1) + "x" + currentVerticalPos;
+        var rightPanelName = (currentHorizontalPos + 1) + "x" + currentVerticalPos;
+        toTopAllowed = false;
+        toBottomAllowed = false;
+        toRightAllowed = false;
+        toLeftAllowed = false;
+        for (var name in panels) {
+            if (panels[name] !== undefined) {
+                if (name.localeCompare(topPanelName) === 0 && currentPanel.forbidTop !== true)
+                    toBottomAllowed = true;
+                else if (name.localeCompare(bottomPanelName) === 0 && currentPanel.forbidBottom !== true)
+                    toTopAllowed = true;
+                else if (name.localeCompare(leftPanelName) === 0 && currentPanel.forbidLeft !== true)
+                    toRightAllowed = true;
+                else if (name.localeCompare(rightPanelName) === 0 && currentPanel.forbidRight !== true)
+                    toLeftAllowed = true;
+                if (name.localeCompare(currentPanelName) === 0)
+                    panels[name].visible = true;
 
-        toTopAllowed    = false
-        toBottomAllowed = false
-        toRightAllowed  = false
-        toLeftAllowed   = false
-
-        for(var name in panels) {
-            if(panels[name] !== undefined) {
-                if(name.localeCompare(topPanelName)===0 && currentPanel.forbidTop !== true)            toBottomAllowed = true
-                else if(name.localeCompare(bottomPanelName)===0 && currentPanel.forbidBottom !== true) toTopAllowed = true
-                else if(name.localeCompare(leftPanelName)===0 && currentPanel.forbidLeft !== true)     toRightAllowed = true
-                else if(name.localeCompare(rightPanelName)===0 && currentPanel.forbidRight !== true)   toLeftAllowed = true
-
-                if (name.localeCompare(currentPanelName)===0) panels[name].visible = true
             }
-        }
-    }
-
-    onCurrentVerticalPosChanged:   changeAllowedDirections()
-    onCurrentHorizontalPosChanged: changeAllowedDirections()
-
-    /* Swipe handling */
-
-    property alias contentX: content.x
-    property alias contentY: content.y
-
-    onContentXChanged: {
-        if (displayAmbient) return
-        panelsHideTimeout.restart()
-        if (panels[(currentHorizontalPos+1) + "x" + currentVerticalPos] !== undefined) panels[(currentHorizontalPos+1) + "x" + currentVerticalPos].visible = true
-        if (panels[(currentHorizontalPos-1) + "x" + currentVerticalPos] !== undefined) panels[(currentHorizontalPos-1) + "x" + currentVerticalPos].visible = true
-    }
-
-    onContentYChanged: {
-        if (displayAmbient) return
-        panelsHideTimeout.restart()
-        if (panels[currentHorizontalPos + "x" + (currentVerticalPos-1)] !== undefined) panels[currentHorizontalPos + "x" + (currentVerticalPos-1)].visible = true
-        if (panels[currentHorizontalPos + "x" + (currentVerticalPos+1)] !== undefined) panels[currentHorizontalPos + "x" + (currentVerticalPos+1)].visible = true
-    }
-
-    onSwipeMoved: {
-        panelsHideTimeout.stop()
-        if(horizontal) {
-            contentX = content.x + delta
-            var currentPanelX = -currentHorizontalPos*panelWidth
-            contentX = Math.min(contentX, currentPanelX + (toRightAllowed ? panelWidth  : 0))
-            contentX = Math.max(contentX, currentPanelX + (toLeftAllowed  ? -panelWidth : 0))
-        } else {
-            contentY = content.y + delta
-            var currentPanelY = -currentVerticalPos*panelHeight
-            contentY = Math.min(contentY, currentPanelY + (toBottomAllowed ? panelHeight  : 0))
-            contentY = Math.max(contentY, currentPanelY + (toTopAllowed    ? -panelHeight : 0))
         }
     }
 
     function animateIndicators() {
-        rightIndicator.animateFar()
-        leftIndicator.animateFar()
-        topIndicator.animateFar()
-        bottomIndicator.animateFar()
+        rightIndicator.animateFar();
+        leftIndicator.animateFar();
+        topIndicator.animateFar();
+        bottomIndicator.animateFar();
     }
 
-    onSwipeReleased: {
-        if(!tracing) {
-            if(horizontal) {
-                var loc = contentX+currentHorizontalPos*panelWidth
-                if((loc > width/2) || velocity > 10 && toRightAllowed)
-                    currentHorizontalPos--
-                else if((loc < -width/2) || velocity < -10 && toLeftAllowed)
-                    currentHorizontalPos++
-
-                contentAnim.property = "x"
-                contentAnim.to = -panelWidth*currentHorizontalPos
-                contentAnim.start()
-            } else {
-                var loc = contentY+currentVerticalPos*panelHeight
-                if((loc > height/2 && velocity > 0) || velocity > 10 && toBottomAllowed)
-                    currentVerticalPos--
-                else if((loc < -height/2 && velocity < 0) || velocity < -10 && toTopAllowed)
-                    currentVerticalPos++
-
-                contentAnim.property = "y"
-                contentAnim.to = -panelHeight*currentVerticalPos
-                contentAnim.start()
+    onWidthChanged: {
+        for (var name in panels) {
+            if (panels[name] !== undefined) {
+                var horizontalPos = name.split('x')[0];
+                panels[name].x = panelWidth * horizontalPos;
+                panels[name].width = panelWidth;
             }
         }
+    }
+    onHeightChanged: {
+        for (var name in panels) {
+            if (panels[name] !== undefined) {
+                var verticalPos = name.split('x')[1];
+                panels[name].y = panelHeight * verticalPos;
+                panels[name].height = panelHeight;
+            }
+        }
+    }
+    onCurrentVerticalPosChanged: changeAllowedDirections()
+    onCurrentHorizontalPosChanged: changeAllowedDirections()
+    onContentXChanged: {
+        if (displayAmbient)
+            return ;
 
-        animateIndicators()
+        panelsHideTimeout.restart();
+        if (panels[(currentHorizontalPos + 1) + "x" + currentVerticalPos] !== undefined)
+            panels[(currentHorizontalPos + 1) + "x" + currentVerticalPos].visible = true;
+
+        if (panels[(currentHorizontalPos - 1) + "x" + currentVerticalPos] !== undefined)
+            panels[(currentHorizontalPos - 1) + "x" + currentVerticalPos].visible = true;
+
+    }
+    onContentYChanged: {
+        if (displayAmbient)
+            return ;
+
+        panelsHideTimeout.restart();
+        if (panels[currentHorizontalPos + "x" + (currentVerticalPos - 1)] !== undefined)
+            panels[currentHorizontalPos + "x" + (currentVerticalPos - 1)].visible = true;
+
+        if (panels[currentHorizontalPos + "x" + (currentVerticalPos + 1)] !== undefined)
+            panels[currentHorizontalPos + "x" + (currentVerticalPos + 1)].visible = true;
+
+    }
+    onSwipeMoved: {
+        panelsHideTimeout.stop();
+        if (horizontal) {
+            contentX = content.x + delta;
+            var currentPanelX = -currentHorizontalPos * panelWidth;
+            contentX = Math.min(contentX, currentPanelX + (toRightAllowed ? panelWidth : 0));
+            contentX = Math.max(contentX, currentPanelX + (toLeftAllowed ? -panelWidth : 0));
+        } else {
+            contentY = content.y + delta;
+            var currentPanelY = -currentVerticalPos * panelHeight;
+            contentY = Math.min(contentY, currentPanelY + (toBottomAllowed ? panelHeight : 0));
+            contentY = Math.max(contentY, currentPanelY + (toTopAllowed ? -panelHeight : 0));
+        }
+    }
+    onSwipeReleased: {
+        if (!tracing) {
+            if (horizontal) {
+                var loc = contentX + currentHorizontalPos * panelWidth;
+                if ((loc > width / 2) || velocity > 10 && toRightAllowed)
+                    currentHorizontalPos--;
+                else if ((loc < -width / 2) || velocity < -10 && toLeftAllowed)
+                    currentHorizontalPos++;
+                contentAnim.property = "x";
+                contentAnim.to = -panelWidth * currentHorizontalPos;
+                contentAnim.start();
+            } else {
+                var loc = contentY + currentVerticalPos * panelHeight;
+                if ((loc > height / 2 && velocity > 0) || velocity > 10 && toBottomAllowed)
+                    currentVerticalPos--;
+                else if ((loc < -height / 2 && velocity < 0) || velocity < -10 && toTopAllowed)
+                    currentVerticalPos++;
+                contentAnim.property = "y";
+                contentAnim.to = -panelHeight * currentVerticalPos;
+                contentAnim.start();
+            }
+        }
+        animateIndicators();
+    }
+
+    // Item that will move according to the user's needs
+    Item {
+        id: content
+
+        onXChanged: {
+            if (normalizedVerOffset == 0)
+                normalizedHorOffset = Math.min(Math.max(-(content.x / panelWidth), -1), 1);
+
+        }
+        onYChanged: {
+            if (normalizedHorOffset == 0)
+                normalizedVerOffset = Math.min(Math.max(-(content.y / panelHeight), -1), 1);
+
+        }
     }
 
     Timer {
         id: panelsHideTimeout
+
         interval: 500
         running: true
         repeat: false
-        onTriggered: hideOffscreen();
+        onTriggered: hideOffscreen()
     }
 
     NumberAnimation {
         id: contentAnim
+
         target: content
         duration: 100
         onStopped: panelsHideTimeout.restart()
     }
+
 }

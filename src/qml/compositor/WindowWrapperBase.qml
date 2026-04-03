@@ -37,24 +37,37 @@ Item {
     id: wrapper
 
     property alias moveInAnim: moveInAnimation
-
     property Item window
     property bool smoothBorders: false
+
+    function animateIn() {
+        fadeInAnimation.start();
+    }
+
     width: window !== null ? Dims.w(100) : 0
     height: window !== null ? Dims.h(100) : 0
-    NumberAnimation on x { id: moveInAnimation; running: false ; to: 0; duration: 100 }
+    Component.onCompleted: window.parent = wrapper
+    layer.enabled: smoothBorders && DeviceSpecs.hasRoundScreen
+
+    NumberAnimation on x {
+        id: moveInAnimation
+
+        running: false
+        to: 0
+        duration: 100
+    }
+
     NumberAnimation on opacity {
         id: fadeInAnimation
+
         running: false
         from: 0
         to: 1
         duration: 100
         onFinished: parent.ready = true
     }
-    function animateIn() { fadeInAnimation.start(); }
 
-    Component.onCompleted: window.parent = wrapper
+    layer.effect: CircleMaskShader {
+    }
 
-    layer.enabled: smoothBorders && DeviceSpecs.hasRoundScreen
-    layer.effect: CircleMaskShader { }
 }

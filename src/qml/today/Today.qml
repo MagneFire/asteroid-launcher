@@ -27,83 +27,121 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+import Nemo.Configuration 1.0
+import Nemo.Time 1.0
 import QtQuick 2.9
 import org.asteroid.controls 1.0
 import org.asteroid.utils 1.0
 import org.nemomobile.calendar 1.0
-import Nemo.Configuration 1.0
-import Nemo.Time 1.0
-import 'weathericons.js' as IconTools
+import "weathericons.js" as IconTools
 
 ListView {
+    property int year: todayClock.time.getFullYear()
+    property int month: todayClock.time.getMonth()
+    property int day: todayClock.time.getDate()
+    property bool weatherAvailable: {
+        var day0Date = new Date(timestampDay0.value * 1000);
+        var daysDiff = Math.round((todayClock.time - day0Date) / (1000 * 60 * 60 * 24));
+        return daysDiff < 5 && daysDiff >= 0;
+    }
+    property int dayNb: {
+        var day0Date = new Date(timestampDay0.value * 1000);
+        var daysDiff = Math.round((todayClock.time - day0Date) / (1000 * 60 * 60 * 24));
+        if (daysDiff > 5)
+            daysDiff = 5;
+
+        return daysDiff;
+    }
+    property bool modelEmpty: agendaModel.count === 0
+
+    function convertTemp(val) {
+        var celsius = (val - 273);
+        if (!useFahrenheit.value)
+            return celsius + "°C";
+        else
+            return Math.round(((celsius) * 9 / 5) + 32) + "°F";
+    }
+
     boundsBehavior: Flickable.StopAtBounds
 
     WallClock {
         id: todayClock
+
         enabled: true
         updateFrequency: WallClock.Day
     }
 
-    property int year: todayClock.time.getFullYear()
-    property int month: todayClock.time.getMonth()
-    property int day: todayClock.time.getDate()
-
     ConfigurationValue {
         id: timestampDay0
+
         key: "/org/asteroidos/weather/timestamp-day0"
         defaultValue: 0
     }
 
     ConfigurationValue {
         id: use12H
+
         key: "/org/asteroidos/settings/use-12h-format"
         defaultValue: false
     }
 
     ConfigurationValue {
         id: useFahrenheit
+
         key: "/org/asteroidos/settings/use-fahrenheit"
         defaultValue: false
     }
 
-    property bool weatherAvailable: {
-        var day0Date = new Date(timestampDay0.value*1000);
-        var daysDiff = Math.round((todayClock.time-day0Date)/(1000*60*60*24));
-        return daysDiff < 5 && daysDiff >= 0
-    }
-
-    property int dayNb: {
-        var day0Date    = new Date(timestampDay0.value*1000);
-        var daysDiff = Math.round((todayClock.time-day0Date)/(1000*60*60*24));
-        if(daysDiff > 5) daysDiff = 5;
-        return daysDiff;
-    }
-
-    function convertTemp(val) {
-        var celsius = (val-273);
-        if(!useFahrenheit.value)
-            return celsius + "°C";
-        else
-            return Math.round(((celsius)*9/5) + 32) + "°F";
-    }
-
     ConfigurationValue {
         id: owmId
+
         key: "/org/asteroidos/weather/day" + dayNb + "/id"
         defaultValue: ""
     }
+
     ConfigurationValue {
         id: minTemp
+
         key: "/org/asteroidos/weather/day" + dayNb + "/min-temp"
         defaultValue: 273
     }
+
     ConfigurationValue {
         id: maxTemp
+
         key: "/org/asteroidos/weather/day" + dayNb + "/max-temp"
         defaultValue: 273
     }
 
-    footer: Item { height: Dims.h(25) }
+    Icon {
+        id: emptyIndicator
+
+        visible: modelEmpty
+        width: Dims.w(27)
+        height: width
+        name: "ios-calendar-outline"
+        anchors.centerIn: parent
+        anchors.verticalCenterOffset: weatherAvailable ? Dims.h(1) : -Dims.h(9)
+        opacity: 0.8
+    }
+
+    Label {
+        visible: modelEmpty
+        anchors.topMargin: Dims.h(4)
+        anchors.top: emptyIndicator.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+        horizontalAlignment: Text.AlignHCenter
+        //% "No events today"
+        text: qsTrId("id-no-events-today") + localeManager.changesObserver
+        font.pixelSize: Dims.l(6)
+        opacity: 0.8
+    }
+
+    footer: Item {
+        height: Dims.h(25)
+    }
+
     header: Item {
         width: parent.width
         height: Dims.h(35)
@@ -148,10 +186,12 @@ ListView {
             wrapMode: Text.WordWrap
             maximumLineCount: 1
         }
+
     }
 
     model: AgendaModel {
         id: agendaModel
+
         startDate: new Date(year, month, day, 0, 0, 0)
         endDate: new Date(year, month, day, 23, 59, 59)
     }
@@ -163,16 +203,19 @@ ListView {
 
             Label {
                 id: hour
+
                 text: model.occurrence.startTime.toLocaleString(Qt.locale(), use12H.value ? "hh:mm AP" : "hh:mm")
                 opacity: 0.8
                 horizontalAlignment: Text.AlignRight
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.left: parent.left
-                width: parent.width*0.3
+                width: parent.width * 0.3
                 font.pixelSize: Dims.l(5)
             }
+
             Label {
                 id: title
+
                 anchors.left: hour.right
                 anchors.right: parent.right
                 anchors.leftMargin: Dims.w(4)
@@ -180,32 +223,9 @@ ListView {
                 anchors.verticalCenter: parent.verticalCenter
                 font.pixelSize: Dims.h(7)
             }
+
         }
+
     }
 
-    property bool modelEmpty: agendaModel.count === 0
-
-    Icon {
-        id: emptyIndicator
-        visible: modelEmpty
-        width: Dims.w(27)
-        height: width
-        name: "ios-calendar-outline"
-        anchors.centerIn: parent
-        anchors.verticalCenterOffset: weatherAvailable ? Dims.h(1) : -Dims.h(9)
-        opacity: 0.8
-    }
-
-    Label {
-        visible: modelEmpty
-        anchors.topMargin: Dims.h(4)
-        anchors.top: emptyIndicator.bottom
-        anchors.left: parent.left
-        anchors.right: parent.right
-        horizontalAlignment: Text.AlignHCenter
-        //% "No events today"
-        text: qsTrId("id-no-events-today") + localeManager.changesObserver
-        font.pixelSize: Dims.l(6)
-        opacity: 0.8
-    }
 }

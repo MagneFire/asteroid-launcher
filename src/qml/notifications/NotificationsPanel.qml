@@ -28,8 +28,8 @@
  */
 
 import QtQuick 2.9
-import org.nemomobile.lipstick 0.1
 import org.asteroid.controls 1.0
+import org.nemomobile.lipstick 0.1
 
 Item {
     id: notifPanel
@@ -43,103 +43,108 @@ Item {
 
     NotificationListModel {
         id: notifModel
+
         onItemAdded: {
-            var index = notifModel.indexOf(item)
-
-            var leftPanelIndex = notifModel.itemCount-1
-            while(leftPanelIndex > index) {
-                if(leftPanelIndex == 1 && firstNotifView !== null) {
-                    panelsGrid.movePanel(-1, -1, -2, -1)
-                    var notif = firstNotifView.notification
-                    firstNotifView.destroy()
-                    var notifView = panelsGrid.addPanel(-2, 0, notificationViewComp)
-                    notifView.visible = false
-                    notifView.notification = notif
-                    notifView.panelsGrid = panelsGrid
-                } else if(firstNotifView !== null) {
-                    panelsGrid.movePanel(-leftPanelIndex, 0, (-leftPanelIndex-1), 0)
-                    panelsGrid.movePanel(-leftPanelIndex, -1, (-leftPanelIndex-1), -1)
+            var index = notifModel.indexOf(item);
+            var leftPanelIndex = notifModel.itemCount - 1;
+            while (leftPanelIndex > index) {
+                if (leftPanelIndex == 1 && firstNotifView !== null) {
+                    panelsGrid.movePanel(-1, -1, -2, -1);
+                    var notif = firstNotifView.notification;
+                    firstNotifView.destroy();
+                    var notifView = panelsGrid.addPanel(-2, 0, notificationViewComp);
+                    notifView.visible = false;
+                    notifView.notification = notif;
+                    notifView.panelsGrid = panelsGrid;
+                } else if (firstNotifView !== null) {
+                    panelsGrid.movePanel(-leftPanelIndex, 0, (-leftPanelIndex - 1), 0);
+                    panelsGrid.movePanel(-leftPanelIndex, -1, (-leftPanelIndex - 1), -1);
                 }
-
-                leftPanelIndex--
+                leftPanelIndex--;
             }
-                    
-            var notifActions = panelsGrid.addPanel(-index-1, -1, notificationActionsComp)
-            notifActions.visible = false
-            notifActions.notification = item
-            notifActions.panelsGrid = panelsGrid
-            notifActions.notificationModel = notifModel
-            if(index > 0) {
-                var notifView = panelsGrid.addPanel(-index-1, 0, notificationViewComp)
-                notifView.visible = false
-                notifView.notification = item
-                notifView.panelsGrid = panelsGrid
+            var notifActions = panelsGrid.addPanel(-index - 1, -1, notificationActionsComp);
+            notifActions.visible = false;
+            notifActions.notification = item;
+            notifActions.panelsGrid = panelsGrid;
+            notifActions.notificationModel = notifModel;
+            if (index > 0) {
+                var notifView = panelsGrid.addPanel(-index - 1, 0, notificationViewComp);
+                notifView.visible = false;
+                notifView.notification = item;
+                notifView.panelsGrid = panelsGrid;
             } else {
-                firstNotifView = notificationViewComp.createObject(notifPanel)
-
-                firstNotifView.x = 0
-                firstNotifView.y = 0
-                firstNotifView.width = Qt.binding(function() { return notifPanel.width })
-                firstNotifView.height = Qt.binding(function() { return notifPanel.height })
-                firstNotifView.notification = item
-                firstNotifView.panelsGrid = panelsGrid
+                firstNotifView = notificationViewComp.createObject(notifPanel);
+                firstNotifView.x = 0;
+                firstNotifView.y = 0;
+                firstNotifView.width = Qt.binding(function() {
+                    return notifPanel.width;
+                });
+                firstNotifView.height = Qt.binding(function() {
+                    return notifPanel.height;
+                });
+                firstNotifView.notification = item;
+                firstNotifView.panelsGrid = panelsGrid;
             }
-
-            panelsGrid.changeAllowedDirections()
+            panelsGrid.changeAllowedDirections();
         }
-
         onRowsRemoved: {
-            for (var i = first+1 ; i <= last+1; i++) {
-                if(i!==1)
-                    panelsGrid.removePanel(-i, 0)
+            for (var i = first + 1; i <= last + 1; i++) {
+                if (i !== 1)
+                    panelsGrid.removePanel(-i, 0);
                 else
-                    firstNotifView.destroy()
-
-                panelsGrid.removePanel(-i, -1)
+                    firstNotifView.destroy();
+                panelsGrid.removePanel(-i, -1);
             }
-
-            for (var i = last+2 ; i <= notifModel.itemCount+1; i++) {
-                if(i == last-first+2) {
-                    panelsGrid.removePanel(-i, 0)
-                    panelsGrid.removePanel(-i, -1)
-
-                    var notifActions = panelsGrid.addPanel(-1, -1, notificationActionsComp)
-                    notifActions.visible = false
-                    notifActions.notification = notifModel.get(0)
-                    notifActions.notificationModel = notifModel
-
-                    firstNotifView = notificationViewComp.createObject(notifPanel)
-                    firstNotifView.x = 0
-                    firstNotifView.y = 0
-                    firstNotifView.width = Qt.binding(function() { return notifPanel.width })
-                    firstNotifView.height = Qt.binding(function() { return notifPanel.height })
-                    firstNotifView.notification = notifModel.get(0)
-                    firstNotifView.panelsGrid = panelsGrid
+            for (var i = last + 2; i <= notifModel.itemCount + 1; i++) {
+                if (i == last - first + 2) {
+                    panelsGrid.removePanel(-i, 0);
+                    panelsGrid.removePanel(-i, -1);
+                    var notifActions = panelsGrid.addPanel(-1, -1, notificationActionsComp);
+                    notifActions.visible = false;
+                    notifActions.notification = notifModel.get(0);
+                    notifActions.notificationModel = notifModel;
+                    firstNotifView = notificationViewComp.createObject(notifPanel);
+                    firstNotifView.x = 0;
+                    firstNotifView.y = 0;
+                    firstNotifView.width = Qt.binding(function() {
+                        return notifPanel.width;
+                    });
+                    firstNotifView.height = Qt.binding(function() {
+                        return notifPanel.height;
+                    });
+                    firstNotifView.notification = notifModel.get(0);
+                    firstNotifView.panelsGrid = panelsGrid;
                 } else {
-                    panelsGrid.movePanel(-i, 0, -i+(last-first+1), 0)
-                    panelsGrid.movePanel(-i, -1, -i+(last-first+1), -1)
+                    panelsGrid.movePanel(-i, 0, -i + (last - first + 1), 0);
+                    panelsGrid.movePanel(-i, -1, -i + (last - first + 1), -1);
                 }
             }
-
-            if (first === 0 && notifModel.itemCount > 0) {
-                panelsGrid.moveTo(-1, 0)
-            } else {
-                panelsGrid.moveTo(-first, 0)
-            }
+            if (first === 0 && notifModel.itemCount > 0)
+                panelsGrid.moveTo(-1, 0);
+            else
+                panelsGrid.moveTo(-first, 0);
         }
     }
 
     Component {
         id: notificationActionsComp
-        NotificationActions {}
+
+        NotificationActions {
+        }
+
     }
+
     Component {
         id: notificationViewComp
-        NotificationView    {}
+
+        NotificationView {
+        }
+
     }
 
     Icon {
         id: emptyIndicator
+
         visible: modelEmpty
         width: Dims.w(27)
         height: width
@@ -161,5 +166,5 @@ Item {
         font.pixelSize: Dims.l(6)
         opacity: 0.8
     }
-}
 
+}

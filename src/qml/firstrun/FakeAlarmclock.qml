@@ -27,37 +27,50 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+import Nemo.Configuration 1.0
+import Nemo.Time 1.0
 import QtQml 2.2
 import QtQuick 2.8
 import org.asteroid.controls 1.0
 import org.asteroid.utils 1.0
-import "qrc:/qml/compositor/";
-import Nemo.Time 1.0
-import Nemo.Configuration 1.0
+import "qrc:/qml/compositor/"
 
 FlatMesh {
-    centerColor: "#CC9800"
-    outerColor: "#0C0500"
-    animated: false /* For some reason we can not have two animated flatmeshes in the same process ? */
-
     property alias contentX: contentArea.contentX
     property bool fakePressed: false
-
-    Indicator { id: leftIndicator; edge: Qt.LeftEdge }
-    Indicator { id: topIndicator; edge: Qt.TopEdge }
 
     function animIndicators() {
         leftIndicator.animate();
         topIndicator.animate();
     }
 
+    centerColor: "#CC9800"
+    outerColor: "#0C0500"
+    animated: false // For some reason we can not have two animated flatmeshes in the same process ?
+    layer.enabled: DeviceSpecs.hasRoundScreen
+
+    Indicator {
+        id: leftIndicator
+
+        edge: Qt.LeftEdge
+    }
+
+    Indicator {
+        id: topIndicator
+
+        edge: Qt.TopEdge
+    }
+
     Flickable {
         id: contentArea
+
         anchors.fill: parent
         interactive: false
+
         Row {
             id: content
-            width: 2*contentArea.width
+
+            width: 2 * contentArea.width
             height: contentArea.height
 
             Item {
@@ -66,14 +79,16 @@ FlatMesh {
 
                 Rectangle {
                     id: addAlarmBackground
+
                     anchors.centerIn: parent
                     anchors.verticalCenterOffset: -Dims.h(5)
-                    color: fakePressed ? "#333333": "black"
-                    radius: width/2
+                    color: fakePressed ? "#333333" : "black"
+                    radius: width / 2
                     opacity: 0.2
                     width: Dims.w(25)
                     height: width
                 }
+
                 Icon {
                     anchors.fill: addAlarmBackground
                     anchors.margins: Dims.l(3)
@@ -86,56 +101,77 @@ FlatMesh {
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                     wrapMode: Text.Wrap
-                    anchors.left: parent.left; anchors.right: parent.right
-                    anchors.leftMargin: Dims.w(2); anchors.rightMargin: Dims.w(2)
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.leftMargin: Dims.w(2)
+                    anchors.rightMargin: Dims.w(2)
                     anchors.verticalCenter: parent.verticalCenter
                     anchors.verticalCenterOffset: Dims.h(15)
                 }
 
                 MouseArea {
                     id: ma
+
                     width: Dims.w(70)
                     height: Dims.h(70)
                     anchors.centerIn: parent
                     onClicked: layerStack.push(timePickerLayer)
                 }
+
             }
 
             Item {
                 id: root
+
                 property var alarmObject
                 property var pop
-                width: contentArea.width
-                height: contentArea.height
 
                 function zeroPadding(x) {
-                    if (x<10) return "0"+x;
-                    else      return x;
+                    if (x < 10)
+                        return "0" + x;
+                    else
+                        return x;
+                }
+
+                width: contentArea.width
+                height: contentArea.height
+                Component.onCompleted: {
+                    var hour = wallClock.time.getHours();
+                    if (use12H.value) {
+                        amPmLV.currentIndex = hour / 12;
+                        hour = hour % 12;
+                    }
+                    hourLV.currentIndex = hour;
+                    minuteLV.currentIndex = wallClock.time.getMinutes();
                 }
 
                 ConfigurationValue {
                     id: use12H
+
                     key: "/org/asteroidos/settings/use-12h-format"
                     defaultValue: false
                 }
 
                 PageHeader {
                     id: title
+
                     //% "Time"
                     text: qsTrId("id-time") + localeManager.changesObserver
                 }
 
                 Row {
                     id: timeSelector
+
+                    property int spinnerWidth: use12H.value ? width / 3 : width / 2
+
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.top: title.bottom
                     height: Dims.h(60)
 
-                    property int spinnerWidth: use12H.value ? width/3 : width/2
-
                     CircularSpinner {
                         id: hourLV
+
                         height: parent.height
                         width: parent.spinnerWidth
                         model: use12H.value ? 12 : 24
@@ -144,6 +180,7 @@ FlatMesh {
 
                     CircularSpinner {
                         id: minuteLV
+
                         height: parent.height
                         width: parent.spinnerWidth
                         model: 60
@@ -152,37 +189,41 @@ FlatMesh {
 
                     Spinner {
                         id: amPmLV
+
                         height: parent.height
                         width: parent.spinnerWidth
                         model: 2
-                        delegate: SpinnerDelegate { text: index == 0 ? "AM" : "PM" }
+
+                        delegate: SpinnerDelegate {
+                            text: index == 0 ? "AM" : "PM"
+                        }
+
                     }
+
                 }
 
                 IconButton {
                     iconName: "ios-arrow-dropright"
-                    anchors { 
+
+                    anchors {
                         bottom: parent.bottom
                         horizontalCenter: parent.horizontalCenter
                         bottomMargin: Dims.iconButtonMargin
                     }
+
                 }
 
-                WallClock { id: wallClock }
-
-                Component.onCompleted: {
-                    var hour = wallClock.time.getHours();
-                    if(use12H.value) {
-                        amPmLV.currentIndex = hour / 12;
-                        hour = hour % 12;
-                    }
-                    hourLV.currentIndex = hour;
-                    minuteLV.currentIndex = wallClock.time.getMinutes();
+                WallClock {
+                    id: wallClock
                 }
+
             }
+
         }
+
     }
 
-    layer.enabled: DeviceSpecs.hasRoundScreen
-    layer.effect: CircleMaskShader { }
+    layer.effect: CircleMaskShader {
+    }
+
 }

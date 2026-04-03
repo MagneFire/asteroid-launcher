@@ -30,31 +30,33 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+import Nemo.Mce 1.0
+import QtGraphicalEffects 1.15
 import QtQuick 2.15
 import QtQuick.Shapes 1.15
-import QtGraphicalEffects 1.15
 import org.asteroid.controls 1.0
 import org.asteroid.utils 1.0
-import Nemo.Mce 1.0
 
 Item {
-    anchors.fill: parent
-
     function twoDigits(x) {
-        if (x<10) return "0" + x;
-        else      return x;
+        if (x < 10)
+            return "0" + x;
+        else
+            return x;
     }
 
     function prepareContext(ctx) {
-        ctx.reset()
-        ctx.fillStyle = "white"
-        ctx.textAlign = "center"
+        ctx.reset();
+        ctx.fillStyle = "white";
+        ctx.textAlign = "center";
         ctx.textBaseline = 'middle';
-        ctx.shadowColor = "black"
-        ctx.shadowOffsetX = 0
-        ctx.shadowOffsetY = 0
-        ctx.shadowBlur = root.height * .0125
+        ctx.shadowColor = "black";
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+        ctx.shadowBlur = root.height * 0.0125;
     }
+
+    anchors.fill: parent
 
     Item {
         id: root
@@ -62,12 +64,40 @@ Item {
         anchors.centerIn: parent
         height: parent.width > parent.height ? parent.height : parent.width
         width: height
+        Component.onCompleted: {
+            var hour = wallClock.time.getHours();
+            var minute = wallClock.time.getMinutes();
+            var month = wallClock.time.getMonth();
+            var date = wallClock.time.getDate();
+            var am = hour < 12;
+            if (use12H.value) {
+                hour = hour % 12;
+                if (hour === 0)
+                    hour = 12;
+
+            }
+            hourCanvas.hour = hour;
+            hourCanvas.requestPaint();
+            minuteCanvas.minute = minute;
+            minuteCanvas.requestPaint();
+            dateCanvas.month = month;
+            dateCanvas.date = date;
+            dateCanvas.requestPaint();
+            amPmCanvas.am = am;
+            amPmCanvas.requestPaint();
+            burnInProtectionManager.widthOffset = Qt.binding(function() {
+                return width * (nightstandMode.active ? 0.1 : 0.32);
+            });
+            burnInProtectionManager.heightOffset = Qt.binding(function() {
+                return height * (nightstandMode.active ? 0.1 : 0.7);
+            });
+        }
 
         Item {
             id: watchfaceRoot
 
             anchors.centerIn: parent
-            width: parent.width * (nightstandMode.active ? .86 : 1)
+            width: parent.width * (nightstandMode.active ? 0.86 : 1)
             height: width
 
             Canvas {
@@ -79,13 +109,11 @@ Item {
                 antialiasing: true
                 smooth: true
                 renderStrategy: Canvas.Cooperative
-
                 onPaint: {
-                    var ctx = getContext("2d")
-                    prepareContext(ctx)
-
-                    ctx.font = "57 " + height * .36 + "px Roboto"
-                    ctx.fillText(twoDigits(hour), width * .378, height * .537);
+                    var ctx = getContext("2d");
+                    prepareContext(ctx);
+                    ctx.font = "57 " + height * 0.36 + "px Roboto";
+                    ctx.fillText(twoDigits(hour), width * 0.378, height * 0.537);
                 }
             }
 
@@ -98,13 +126,11 @@ Item {
                 antialiasing: true
                 smooth: true
                 renderStrategy: Canvas.Cooperative
-
                 onPaint: {
-                    var ctx = getContext("2d")
-                    prepareContext(ctx)
-
-                    ctx.font = "30 " + height * .18 + "px Roboto"
-                    ctx.fillText(twoDigits(minute), width * .717, height * .473);
+                    var ctx = getContext("2d");
+                    prepareContext(ctx);
+                    ctx.font = "30 " + height * 0.18 + "px Roboto";
+                    ctx.fillText(twoDigits(minute), width * 0.717, height * 0.473);
                 }
             }
 
@@ -118,13 +144,11 @@ Item {
                 smooth: true
                 renderStrategy: Canvas.Cooperative
                 visible: use12H.value
-
                 onPaint: {
-                    var ctx = getContext("2d")
-                    prepareContext(ctx)
-
-                    ctx.font = "25 " + height / 15 + "px Raleway"
-                    ctx.fillText(wallClock.time.toLocaleString(Qt.locale("en_EN"), "AP"), width * .894, height * .371);
+                    var ctx = getContext("2d");
+                    prepareContext(ctx);
+                    ctx.font = "25 " + height / 15 + "px Raleway";
+                    ctx.fillText(wallClock.time.toLocaleString(Qt.locale("en_EN"), "AP"), width * 0.894, height * 0.371);
                 }
             }
 
@@ -138,14 +162,14 @@ Item {
                 antialiasing: true
                 smooth: true
                 renderStrategy: Canvas.Cooperative
-
                 onPaint: {
-                    var ctx = getContext("2d")
-                    prepareContext(ctx)
-                    ctx.font = "25 " + height / 13 + "px Raleway"
-                    ctx.fillText(wallClock.time.toLocaleString(Qt.locale(), "d MMM"), width * .719, height * .595);
+                    var ctx = getContext("2d");
+                    prepareContext(ctx);
+                    ctx.font = "25 " + height / 13 + "px Raleway";
+                    ctx.fillText(wallClock.time.toLocaleString(Qt.locale(), "d MMM"), width * 0.719, height * 0.595);
                 }
             }
+
         }
 
         Item {
@@ -154,6 +178,7 @@ Item {
             readonly property bool active: nightstand
 
             anchors.fill: parent
+            visible: nightstandMode.active
 
             layer {
                 enabled: true
@@ -161,7 +186,6 @@ Item {
                 smooth: true
                 textureSize: Qt.size(nightstandMode.width * 2, nightstandMode.height * 2)
             }
-            visible: nightstandMode.active
 
             Repeater {
                 id: segmentedArc
@@ -172,17 +196,17 @@ Item {
                 property int gap: 6
                 property int endFromStart: 360
                 property bool clockwise: true
-                property real arcStrokeWidth: .055
-                property real scalefactor: .45 - (arcStrokeWidth / 2)
+                property real arcStrokeWidth: 0.055
+                property real scalefactor: 0.45 - (arcStrokeWidth / 2)
                 property real chargecolor: Math.floor(batteryChargePercentage.percent / 33.35)
-                readonly property var colorArray: [ "red", "yellow", Qt.rgba(.318, 1, .051, .9)]
+                readonly property var colorArray: ["red", "yellow", Qt.rgba(0.318, 1, 0.051, 0.9)]
 
                 model: segmentAmount
 
                 Shape {
                     id: segment
 
-                    visible: index === 0 ? true : (index/segmentedArc.segmentAmount) < segmentedArc.inputValue
+                    visible: index === 0 ? true : (index / segmentedArc.segmentAmount) < segmentedArc.inputValue
 
                     ShapePath {
                         fillColor: "transparent"
@@ -191,7 +215,7 @@ Item {
                         capStyle: ShapePath.FlatCap
                         joinStyle: ShapePath.MiterJoin
                         startX: parent.width / 2
-                        startY: parent.height * ( .5 - segmentedArc.scalefactor)
+                        startY: parent.height * (0.5 - segmentedArc.scalefactor)
 
                         PathAngleArc {
                             centerX: parent.width / 2
@@ -199,13 +223,16 @@ Item {
                             radiusX: segmentedArc.scalefactor * parent.width
                             radiusY: segmentedArc.scalefactor * parent.height
                             startAngle: -90 + index * (sweepAngle + (segmentedArc.clockwise ? +segmentedArc.gap : -segmentedArc.gap)) + segmentedArc.start
-                            sweepAngle: segmentedArc.clockwise ? (segmentedArc.endFromStart / segmentedArc.segmentAmount) - segmentedArc.gap :
-                                                                 -(segmentedArc.endFromStart / segmentedArc.segmentAmount) + segmentedArc.gap
+                            sweepAngle: segmentedArc.clockwise ? (segmentedArc.endFromStart / segmentedArc.segmentAmount) - segmentedArc.gap : -(segmentedArc.endFromStart / segmentedArc.segmentAmount) + segmentedArc.gap
                             moveToStart: true
                         }
+
                     }
+
                 }
+
             }
+
         }
 
         MceBatteryLevel {
@@ -213,56 +240,40 @@ Item {
         }
 
         Connections {
-            target: wallClock
             function onTimeChanged() {
-                var hour = wallClock.time.getHours()
-                var minute = wallClock.time.getMinutes()
-                var month = wallClock.time.getMonth()
-                var date = wallClock.time.getDate()
-                var am = hour < 12
-                if(use12H.value) {
-                    hour = hour % 12
-                    if (hour === 0) hour = 12;
+                var hour = wallClock.time.getHours();
+                var minute = wallClock.time.getMinutes();
+                var month = wallClock.time.getMonth();
+                var date = wallClock.time.getDate();
+                var am = hour < 12;
+                if (use12H.value) {
+                    hour = hour % 12;
+                    if (hour === 0)
+                        hour = 12;
+
                 }
-                if(hourCanvas.hour !== hour) {
-                    hourCanvas.hour = hour
-                    hourCanvas.requestPaint()
-                } if(minuteCanvas.minute !== minute) {
-                    minuteCanvas.minute = minute
-                    minuteCanvas.requestPaint()
-                } if(dateCanvas.date !== date || dateCanvas.month !== month) {
-                    dateCanvas.date = date
-                    dateCanvas.month = month
-                    dateCanvas.requestPaint()
-                } if(amPmCanvas.am != am) {
-                    amPmCanvas.am = am
-                    amPmCanvas.requestPaint()
+                if (hourCanvas.hour !== hour) {
+                    hourCanvas.hour = hour;
+                    hourCanvas.requestPaint();
+                }
+                if (minuteCanvas.minute !== minute) {
+                    minuteCanvas.minute = minute;
+                    minuteCanvas.requestPaint();
+                }
+                if (dateCanvas.date !== date || dateCanvas.month !== month) {
+                    dateCanvas.date = date;
+                    dateCanvas.month = month;
+                    dateCanvas.requestPaint();
+                }
+                if (amPmCanvas.am != am) {
+                    amPmCanvas.am = am;
+                    amPmCanvas.requestPaint();
                 }
             }
+
+            target: wallClock
         }
 
-        Component.onCompleted: {
-            var hour = wallClock.time.getHours()
-            var minute = wallClock.time.getMinutes()
-            var month = wallClock.time.getMonth()
-            var date = wallClock.time.getDate()
-            var am = hour < 12
-            if(use12H.value) {
-                hour = hour % 12
-                if (hour === 0) hour = 12
-            }
-            hourCanvas.hour = hour
-            hourCanvas.requestPaint()
-            minuteCanvas.minute = minute
-            minuteCanvas.requestPaint()
-            dateCanvas.month = month
-            dateCanvas.date = date
-            dateCanvas.requestPaint()
-            amPmCanvas.am = am
-            amPmCanvas.requestPaint()
-
-            burnInProtectionManager.widthOffset = Qt.binding(function() { return width * (nightstandMode.active ? .1 : .32)})
-            burnInProtectionManager.heightOffset = Qt.binding(function() { return height * (nightstandMode.active ? .1 : .7)})
-        }
     }
+
 }

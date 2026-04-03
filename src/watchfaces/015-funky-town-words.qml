@@ -32,29 +32,40 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+import Nemo.Mce 1.0
+import QtGraphicalEffects 1.15
 import QtQuick 2.15
 import QtQuick.Shapes 1.15
-import QtGraphicalEffects 1.15
 import org.asteroid.controls 1.0
 import org.asteroid.utils 1.0
-import Nemo.Mce 1.0
 
 Item {
-    anchors.fill: parent
-
     property string imgPath: "../watchfaces-img/funky-town-words-"
+
+    anchors.fill: parent
 
     Item {
         anchors.centerIn: parent
-
         height: parent.width > parent.height ? parent.height : parent.width
         width: height
+        Component.onCompleted: {
+            burnInProtectionManager.leftOffset = Qt.binding(function() {
+                return width * nightstandMode.active ? 0.05 : 0.4;
+            });
+            burnInProtectionManager.rightOffset = Qt.binding(function() {
+                return width * 0.05;
+            });
+            burnInProtectionManager.topOffset = Qt.binding(function() {
+                return height * nightstandMode.active ? 0.05 : 0.4;
+            });
+            burnInProtectionManager.bottomOffset = Qt.binding(function() {
+                return height * 0.05;
+            });
+        }
 
         Image {
             anchors.centerIn: parent
-            source: imgPath +
-                    wallClock.time.toLocaleString(Qt.locale(), "hh am").slice(0, 2) +
-                    (nightstandMode.active || displayAmbient ? "-bw.svg" : ".svg")
+            source: imgPath + wallClock.time.toLocaleString(Qt.locale(), "hh am").slice(0, 2) + (nightstandMode.active || displayAmbient ? "-bw.svg" : ".svg")
             sourceSize.width: parent.width
             sourceSize.height: parent.height
             width: parent.width
@@ -63,8 +74,7 @@ Item {
 
         Image {
             anchors.centerIn: parent
-            source: imgPath +
-                    wallClock.time.toLocaleString(Qt.locale("en_EN"), "ap").toLowerCase().slice(0, 2) + ".svg"
+            source: imgPath + wallClock.time.toLocaleString(Qt.locale("en_EN"), "ap").toLowerCase().slice(0, 2) + ".svg"
             visible: use12H.value
             sourceSize.width: parent.width
             sourceSize.height: parent.height
@@ -75,29 +85,45 @@ Item {
         Text {
             id: minuteDisplay
 
+            color: nightstandMode.active || displayAmbient ? "#000" : "#fff"
+            text: wallClock.time.toLocaleString(Qt.locale(), "mm")
+
             anchors {
                 bottom: parent.bottom
-                bottomMargin: parent.height * .15
+                bottomMargin: parent.height * 0.15
                 horizontalCenter: parent.horizontalCenter
-                horizontalCenterOffset: parent.width*.2
+                horizontalCenterOffset: parent.width * 0.2
             }
+
             font {
-                pixelSize: parent.height * .22
+                pixelSize: parent.height * 0.22
                 family: "Source Sans Pro"
                 styleName: "Light"
             }
-            color: nightstandMode.active || displayAmbient ? "#000" : "#fff"
-            text: wallClock.time.toLocaleString(Qt.locale(), "mm")
 
             Behavior on text {
                 enabled: !displayAmbient
 
                 SequentialAnimation {
-                    NumberAnimation { target: minuteDisplay; property: "opacity"; to: 0 }
-                    PropertyAction {}
-                    NumberAnimation { target: minuteDisplay; property: "opacity"; to: 1 }
+                    NumberAnimation {
+                        target: minuteDisplay
+                        property: "opacity"
+                        to: 0
+                    }
+
+                    PropertyAction {
+                    }
+
+                    NumberAnimation {
+                        target: minuteDisplay
+                        property: "opacity"
+                        to: 1
+                    }
+
                 }
+
             }
+
         }
 
         Item {
@@ -108,6 +134,7 @@ Item {
 
             anchors.fill: parent
             visible: nightstandMode.active
+
             layer {
                 enabled: true
                 samples: 4
@@ -120,10 +147,10 @@ Item {
 
                 property real angle: batteryChargePercentage.percent * 360 / 100
                 // radius of arc is scalefactor * height or width
-                property real arcStrokeWidth: .016
-                property real scalefactor: .45 - (arcStrokeWidth / 2)
+                property real arcStrokeWidth: 0.016
+                property real scalefactor: 0.45 - (arcStrokeWidth / 2)
                 property real chargecolor: Math.floor(batteryChargePercentage.percent / 33.35)
-                readonly property var colorArray: [ "red", "yellow", Qt.rgba(.318, 1, .051, .9)]
+                readonly property var colorArray: ["red", "yellow", Qt.rgba(0.318, 1, 0.051, 0.9)]
 
                 anchors.fill: parent
                 smooth: true
@@ -136,7 +163,7 @@ Item {
                     capStyle: ShapePath.RoundCap
                     joinStyle: ShapePath.MiterJoin
                     startX: chargeArc.width / 2
-                    startY: chargeArc.height * ( .5 - chargeArc.scalefactor)
+                    startY: chargeArc.height * (0.5 - chargeArc.scalefactor)
 
                     PathAngleArc {
                         centerX: chargeArc.width / 2
@@ -147,26 +174,31 @@ Item {
                         sweepAngle: chargeArc.angle
                         moveToStart: false
                     }
+
                 }
+
             }
 
             Text {
                 id: batteryPercent
 
-                anchors {
-                    centerIn: parent
-                    verticalCenterOffset: -parent.width * .28
-                }
-
-                font {
-                    pixelSize: parent.width * .13
-                    family: "Source Sans Pro"
-                    styleName: "Light"
-                }
                 visible: nightstandMode.active
                 color: chargeArc.colorArray[chargeArc.chargecolor]
                 text: batteryChargePercentage.percent
+
+                anchors {
+                    centerIn: parent
+                    verticalCenterOffset: -parent.width * 0.28
+                }
+
+                font {
+                    pixelSize: parent.width * 0.13
+                    family: "Source Sans Pro"
+                    styleName: "Light"
+                }
+
             }
+
         }
 
         MceBatteryLevel {
@@ -181,11 +213,6 @@ Item {
             id: mceCableState
         }
 
-        Component.onCompleted: {
-            burnInProtectionManager.leftOffset = Qt.binding(function() { return width * nightstandMode.active ? .05 : .4})
-            burnInProtectionManager.rightOffset = Qt.binding(function() { return width * .05})
-            burnInProtectionManager.topOffset = Qt.binding(function() { return height * nightstandMode.active ? .05 : .4})
-            burnInProtectionManager.bottomOffset = Qt.binding(function() { return height * .05})
-        }
     }
+
 }

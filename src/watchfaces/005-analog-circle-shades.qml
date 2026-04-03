@@ -24,15 +24,15 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import QtQuick 2.15
-import QtGraphicalEffects 1.15
-import QtQuick.Shapes 1.15
 import Nemo.Mce 1.0
+import QtGraphicalEffects 1.15
+import QtQuick 2.15
+import QtQuick.Shapes 1.15
 
 Item {
-    anchors.fill: parent
-
     property string imgPath: "../watchfaces-img/analog-circle-shades-"
+
+    anchors.fill: parent
 
     Item {
         id: root
@@ -67,8 +67,8 @@ Item {
                 property int gap: 6
                 property int endFromStart: 360
                 property bool clockwise: true
-                property real arcStrokeWidth: .011
-                property real scalefactor: .374 - (arcStrokeWidth / 2)
+                property real arcStrokeWidth: 0.011
+                property real scalefactor: 0.374 - (arcStrokeWidth / 2)
 
                 model: segmentAmount
 
@@ -82,7 +82,7 @@ Item {
                         capStyle: ShapePath.RoundCap
                         joinStyle: ShapePath.MiterJoin
                         startX: parent.width / 2
-                        startY: parent.height * ( .5 - segmentedArc.scalefactor)
+                        startY: parent.height * (0.5 - segmentedArc.scalefactor)
 
                         PathAngleArc {
                             centerX: parent.width / 2
@@ -90,13 +90,16 @@ Item {
                             radiusX: segmentedArc.scalefactor * parent.width
                             radiusY: segmentedArc.scalefactor * parent.height
                             startAngle: -90 + index * (sweepAngle + (segmentedArc.clockwise ? +segmentedArc.gap : -segmentedArc.gap)) + segmentedArc.start
-                            sweepAngle: segmentedArc.clockwise ? (segmentedArc.endFromStart / segmentedArc.segmentAmount) - segmentedArc.gap :
-                                                                 -(segmentedArc.endFromStart / segmentedArc.segmentAmount) + segmentedArc.gap
+                            sweepAngle: segmentedArc.clockwise ? (segmentedArc.endFromStart / segmentedArc.segmentAmount) - segmentedArc.gap : -(segmentedArc.endFromStart / segmentedArc.segmentAmount) + segmentedArc.gap
                             moveToStart: true
                         }
+
                     }
+
                 }
+
             }
+
         }
 
         Item {
@@ -111,6 +114,20 @@ Item {
                 source: imgPath + "second.svg"
                 anchors.fill: handBox
 
+                layer {
+                    enabled: true
+
+                    effect: DropShadow {
+                        transparentBorder: true
+                        horizontalOffset: 0
+                        verticalOffset: 0
+                        radius: 10
+                        samples: 21
+                        color: Qt.rgba(0, 0, 0, 0.8)
+                    }
+
+                }
+
                 transform: Rotation {
                     origin.x: handBox.width / 2
                     origin.y: handBox.height / 2
@@ -123,20 +140,11 @@ Item {
                             duration: 1000
                             direction: RotationAnimation.Clockwise
                         }
+
                     }
+
                 }
 
-                layer {
-                    enabled: true
-                    effect: DropShadow {
-                        transparentBorder: true
-                        horizontalOffset: 0
-                        verticalOffset: 0
-                        radius: 10.0
-                        samples: 21
-                        color: Qt.rgba(0, 0, 0, .8)
-                    }
-                }
             }
 
             Text {
@@ -147,16 +155,16 @@ Item {
                 property real centerY: parent.height / 2 - height / 2.06
 
                 visible: !displayAmbient
-
-                font{
-                    pixelSize: parent.height * .082
-                    family: "Roboto Flex"
-                    letterSpacing: -parent.height * .005
-                }
                 color: "white"
-                x: centerX + Math.cos(rotM * 2 * Math.PI) * parent.width * .366
-                y: centerY + Math.sin(rotM * 2 * Math.PI) * parent.height * .366
+                x: centerX + Math.cos(rotM * 2 * Math.PI) * parent.width * 0.366
+                y: centerY + Math.sin(rotM * 2 * Math.PI) * parent.height * 0.366
                 text: wallClock.time.toLocaleString(Qt.locale(), "ss")
+
+                font {
+                    pixelSize: parent.height * 0.082
+                    family: "Roboto Flex"
+                    letterSpacing: -parent.height * 0.005
+                }
 
                 Behavior on x {
                     enabled: !displayAmbient
@@ -164,6 +172,7 @@ Item {
                     NumberAnimation {
                         duration: 1000
                     }
+
                 }
 
                 Behavior on y {
@@ -172,7 +181,9 @@ Item {
                     NumberAnimation {
                         duration: 1000
                     }
+
                 }
+
             }
 
             Image {
@@ -181,23 +192,26 @@ Item {
                 source: imgPath + "minute.svg"
                 anchors.fill: handBox
 
+                layer {
+                    enabled: true
+
+                    effect: DropShadow {
+                        transparentBorder: true
+                        horizontalOffset: 0
+                        verticalOffset: 0
+                        radius: 15
+                        samples: 31
+                        color: Qt.rgba(0, 0, 0, 0.8)
+                    }
+
+                }
+
                 transform: Rotation {
                     origin.x: handBox.width / 2
                     origin.y: handBox.height / 2
                     angle: (wallClock.time.getMinutes() * 6) + (wallClock.time.getSeconds() * 6 / 60)
                 }
 
-                layer {
-                    enabled: true
-                    effect: DropShadow {
-                        transparentBorder: true
-                        horizontalOffset: 0
-                        verticalOffset: 0
-                        radius: 15.0
-                        samples: 31
-                        color: Qt.rgba(0, 0, 0, .8)
-                    }
-                }
             }
 
             Text {
@@ -207,57 +221,70 @@ Item {
                 property real centerX: parent.width / 2 - width / 1.92
                 property real centerY: parent.height / 2 - height / 2.04
 
-                font{
-                    pixelSize: parent.height * .12
+                color: "black"
+                x: centerX + Math.cos(rotM * 2 * Math.PI) * parent.height * 0.214
+                y: centerY + Math.sin(rotM * 2 * Math.PI) * parent.width * 0.214
+                text: wallClock.time.toLocaleString(Qt.locale(), "mm")
+
+                font {
+                    pixelSize: parent.height * 0.12
                     family: "Roboto Flex"
                     styleName: "Medium"
-                    letterSpacing: -parent.height * .006
+                    letterSpacing: -parent.height * 0.006
                 }
-                color: "black"
-                x: centerX + Math.cos(rotM * 2 * Math.PI) * parent.height * .214
-                y: centerY + Math.sin(rotM * 2 * Math.PI) * parent.width * .214
-                text: wallClock.time.toLocaleString(Qt.locale(), "mm")
+
             }
 
             Image {
                 id: hourSVG
 
-                source:imgPath + "hour.svg"
+                source: imgPath + "hour.svg"
                 anchors.fill: parent
 
                 layer {
                     enabled: true
+
                     effect: DropShadow {
                         transparentBorder: true
                         horizontalOffset: 0
                         verticalOffset: 0
-                        radius: 20.0
+                        radius: 20
                         samples: 41
-                        color: Qt.rgba(0, 0, 0, .8)
+                        color: Qt.rgba(0, 0, 0, 0.8)
                     }
+
                 }
+
             }
+
         }
 
         Text {
             id: hourDisplay
 
+            color: "black"
+            text: {
+                if (use12H.value)
+                    wallClock.time.toLocaleString(Qt.locale(), "hh ap").slice(0, 2);
+                else
+                    wallClock.time.toLocaleString(Qt.locale(), "HH");
+            }
+
             anchors {
                 centerIn: parent
-                verticalCenterOffset: parent.height * .004
-                horizontalCenterOffset: -parent.height * .0012
+                verticalCenterOffset: parent.height * 0.004
+                horizontalCenterOffset: -parent.height * 0.0012
             }
+
             font {
-                pixelSize: parent.height * .18
+                pixelSize: parent.height * 0.18
                 family: "Roboto Flex"
                 styleName: "Medium"
-                letterSpacing: -parent.height * .005
+                letterSpacing: -parent.height * 0.005
             }
-            color: "black"
-            text: if (use12H.value) {
-                      wallClock.time.toLocaleString(Qt.locale(), "hh ap").slice(0, 2) }
-                  else
-                      wallClock.time.toLocaleString(Qt.locale(), "HH")
+
         }
+
     }
+
 }
