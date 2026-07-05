@@ -116,6 +116,7 @@ Item {
             }
         }
 
+        state: "hide"
         states: [
             State {
                 name: "show"
