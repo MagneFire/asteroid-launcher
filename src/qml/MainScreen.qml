@@ -63,6 +63,12 @@ Item {
 
     property var displayAmbient: Lipstick.compositor.displayAmbient
 
+    /* Tracks the panel power state so always-animating items (e.g. a live
+     * wallpaper) can stop scheduling frames while the display is off. Set
+     * before the panel lights up, like wallClock, so the first visible frame
+     * is already correct. */
+    property bool displayOn: true
+
     property var compositor: Lipstick.compositor
 
     property bool aboutToOpen: false
@@ -203,8 +209,10 @@ Item {
         function onDisplayAboutToBeOn() {
             wallClockAmbientTimeout.stop()
             wallClock.enabled = true
+            displayOn = true
         }
         function onDisplayAboutToBeOff() { wallClock.enabled = false }
+        function onDisplayOff() { displayOn = false }
         function onDisplayOn() {
             grid.animateIndicators()
             wallpaperDarkener.opacity = 0
@@ -506,7 +514,11 @@ Item {
         id: wallpaper
         width: Dims.w(110)
         height:  Dims.h(110)
-        visible: wallpaperDarkener.opacity != 1.0
+        /* Hidden both behind a fully opaque darkener and while the display is
+         * off, so an animated wallpaper cannot keep scheduling frames on a
+         * blanked panel. displayOn (not !displayAmbient) keeps the wallpaper
+         * shown until the ambient darkener finishes fading to opaque. */
+        visible: wallpaperDarkener.opacity != 1.0 && displayOn
         enabled: visible
         z: -100
         anchors.verticalCenter: parent.verticalCenter

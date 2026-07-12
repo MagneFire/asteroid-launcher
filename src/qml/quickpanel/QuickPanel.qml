@@ -500,8 +500,12 @@ Item {
         opacity: 1.0
 
         SequentialAnimation on opacity {
-            running: isCharging && options.value.batteryAnimation
+            /* flashIcon.visible folds in isCharging and the panel's effective
+             * visibility, so the infinite loop stops ticking while the quick
+             * panel is offscreen or the display is off. */
+            running: flashIcon.visible && options.value.batteryAnimation
             loops: Animation.Infinite
+            onStopped: flashIcon.opacity = 1.0
             NumberAnimation { to: 0.7; duration: 1500; easing.type: Easing.InOutQuad }
             NumberAnimation { to: 1.0; duration: 1500; easing.type: Easing.InOutQuad }
         }
