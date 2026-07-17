@@ -31,7 +31,6 @@
 
 import QtQuick
 import Qt5Compat.GraphicalEffects
-import QtMultimedia
 import org.asteroid.controls
 import org.asteroid.utils
 import org.asteroid.launcher
@@ -144,10 +143,9 @@ Item {
     }
     DisplaySettings { id: displaySettings }
 
-    SoundEffect {
+    NonGraphicalFeedback {
         id: unmuteSound
-        source: "file:///usr/share/sounds/notification.wav"
-        volume: 0.8
+        event: "notification"
     }
 
     NetworkTechnology {
