@@ -48,6 +48,12 @@ Item {
         id: homeLayer
         z: 1
         anchors.fill: parent
+        // Skip compositing the home screen (animated wallpaper, watchface)
+        // while an opaque fullscreen app fully covers it. The wallpaper's
+        // ~11fps animation otherwise keeps stealing panel slots from the
+        // app's own frames. Stay visible during open/close/minimize
+        // transitions where the app does not cover the whole screen.
+        visible: !comp || !comp.appActive || !appLayer.ready || gestureArea.active || appLayer.opacity < 1.0
     }
 
     Item {
