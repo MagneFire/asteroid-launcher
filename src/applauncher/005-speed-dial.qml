@@ -60,6 +60,10 @@ Item {
         model: launcherModel
         focus: true
         pathItemCount: 8
+        // Keep off-path delegates alive: creating a delegate costs a DropShadow
+        // render + icon load, which caused 40-146ms frame spikes while the
+        // wheel decelerated through the list.
+        cacheItemCount: launcherModel.itemCount
         path: Path {
             startX: pv.width/2-pv.borderRadius/2
             startY: pv.height/2-pv.borderRadius/2 + pv.borderRadius/2 - 1
