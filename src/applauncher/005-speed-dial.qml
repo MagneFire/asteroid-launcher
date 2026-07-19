@@ -100,12 +100,17 @@ Item {
                     width: parent.width
                     height: parent.height
                     radius: width/2
-                    opacity: launcherItem.pressed | fakePressed ? 0.8 : 1.0
+                    opacity: (launcherItem.pressed && !pv.moving) | fakePressed ? 0.8 : 1.0
                     color: (root.selectedLauncherItem == model.object) ? alb.centerColor(model.object.filePath) : "#f4f4f4"
                     Behavior on opacity {
                         PropertyAnimation { target: circle; duration: 70 }
                     }
+                    // While the wheel coasts the selection sweeps the list,
+                    // firing this every step and re-rasterizing the delegate
+                    // (which also invalidates the cached DropShadow). Snap
+                    // colour instantly during motion; animate only at rest.
                     Behavior on color {
+                        enabled: !pv.moving
                         PropertyAnimation { target: circle; property: "color"; duration: 70 }
                     }
                 }
@@ -116,7 +121,10 @@ Item {
                 horizontalOffset: 0
                 verticalOffset: 0
                 radius: 8.0
-                samples: 17
+                // 9 samples is materially cheaper than 17 on SGX530 for a
+                // barely-perceptible softness change; the shadow is cached so
+                // it only re-blurs when the delegate actually changes.
+                samples: 9
                 color: "#80000000"
                 source: circleWrapper
                 cached: true
@@ -127,10 +135,13 @@ Item {
                 anchors.centerIn: circleWrapper
                 width: circleWrapper.width * 0.70
                 height: width
-                opacity: launcherItem.pressed | fakePressed ? 1.0 : 0.9
+                opacity: (launcherItem.pressed && !pv.moving) | fakePressed ? 1.0 : 0.9
                 name: model.object.iconId === "" ? "ios-help" : model.object.iconId
                 color: (root.selectedLauncherItem == model.object) ? "#ffffff" : "#000000"
+                // Icon is a QQuickPaintedItem; a colour step repaints its
+                // pixmap. Snap during motion, animate at rest (press feedback).
                 Behavior on color {
+                    enabled: !pv.moving
                     PropertyAnimation { target: icon; property: "color"; duration: 70 }
                 }
             }
