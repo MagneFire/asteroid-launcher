@@ -40,6 +40,7 @@ import org.asteroid.utils
 ListView {
     id: appsView
     anchors.fill: parent
+    pressDelay: 90
     preferredHighlightBegin: appsView.height/2 - appsView.height/12
     preferredHighlightEnd: appsView.height/2 + appsView.height/12
     highlightRangeMode: ListView.StrictlyEnforceRange

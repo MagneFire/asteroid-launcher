@@ -47,6 +47,7 @@ Item {
 
         orientation: ListView.Horizontal
         snapMode: ListView.SnapToItem
+        pressDelay: 90
         width: parent.width
 	height: parent.width > parent.height ? parent.height : parent.width
 	contentX: tutorialScroll

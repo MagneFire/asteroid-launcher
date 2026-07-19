@@ -40,6 +40,7 @@ GridView {
     id: appsView
     flow: GridView.FlowLeftToRight
     snapMode: GridView.SnapToRow
+    pressDelay: 90
     anchors.fill: parent
     clip: true
     cellHeight: appsView.height / 2

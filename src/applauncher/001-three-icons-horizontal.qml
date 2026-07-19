@@ -39,6 +39,7 @@ ListView {
     id: appsListView
     orientation: ListView.Horizontal
     snapMode: ListView.SnapToItem
+    pressDelay: 90
     anchors.fill: parent
     clip: true
 

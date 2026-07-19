@@ -29,6 +29,7 @@ Item {
 
         orientation: ListView.Vertical
         snapMode: ListView.SnapToItem
+        pressDelay: 90
         width: parent.width > parent.height ? parent.height : parent.width
         height: parent.height
         anchors.centerIn: parent

@@ -191,6 +191,7 @@ Item {
 
         flow: GridView.FlowLeftToRight
         snapMode: GridView.SnapToRow
+        pressDelay: 90
         anchors {
             fill: parent
             leftMargin: parent.width * .026
