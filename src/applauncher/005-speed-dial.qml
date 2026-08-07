@@ -60,6 +60,7 @@ Item {
         model: launcherModel
         focus: true
         pathItemCount: 8
+        cacheItemCount: launcherModel.itemCount
         path: Path {
             startX: pv.width/2-pv.borderRadius/2
             startY: pv.height/2-pv.borderRadius/2 + pv.borderRadius/2 - 1
