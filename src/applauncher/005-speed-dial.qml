@@ -97,12 +97,13 @@ Item {
                     width: parent.width
                     height: parent.height
                     radius: width/2
-                    opacity: launcherItem.pressed | fakePressed ? 0.8 : 1.0
+                    opacity: (launcherItem.pressed && !pv.moving) | fakePressed ? 0.8 : 1.0
                     color: (root.selectedLauncherItem == model.object) ? alb.centerColor(model.object.filePath) : "#f4f4f4"
                     Behavior on opacity {
                         PropertyAnimation { target: circle; duration: 70 }
                     }
                     Behavior on color {
+                        enabled: !pv.moving
                         PropertyAnimation { target: circle; property: "color"; duration: 70 }
                     }
                 }
@@ -124,10 +125,11 @@ Item {
                 anchors.centerIn: circleWrapper
                 width: circleWrapper.width * 0.70
                 height: width
-                opacity: launcherItem.pressed | fakePressed ? 1.0 : 0.9
+                opacity: (launcherItem.pressed && !pv.moving) | fakePressed ? 1.0 : 0.9
                 name: model.object.iconId === "" ? "ios-help" : model.object.iconId
                 color: (root.selectedLauncherItem == model.object) ? "#ffffff" : "#000000"
                 Behavior on color {
+                    enabled: !pv.moving
                     PropertyAnimation { target: icon; property: "color"; duration: 70 }
                 }
             }
