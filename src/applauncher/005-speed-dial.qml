@@ -113,7 +113,7 @@ Item {
                 horizontalOffset: 0
                 verticalOffset: 0
                 radius: 8.0
-                samples: 17
+                samples: 9
                 color: "#80000000"
                 source: circleWrapper
                 cached: true
