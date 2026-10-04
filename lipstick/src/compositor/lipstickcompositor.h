@@ -57,6 +57,7 @@ class LipstickCompositor : public QWaylandQuickCompositor
     Q_PROPERTY(bool ambientSupported READ ambientSupported CONSTANT)
     Q_PROPERTY(bool ambientEnabled READ ambientEnabled WRITE setAmbientEnabled NOTIFY ambientEnabledChanged)
     Q_PROPERTY(bool displayAmbient READ displayAmbient NOTIFY displayAmbientChanged)
+    Q_PROPERTY(bool ambientOffloaded READ ambientOffloaded NOTIFY ambientOffloadedChanged)
 
 public:
     LipstickCompositor();
@@ -111,6 +112,7 @@ public:
     bool ambientSupported() const;
     void setAmbientEnabled(bool enabled);
     bool ambientEnabled() const { return m_ambientModeEnabled; }
+    bool ambientOffloaded() const { return m_ambientOffloaded; }
     Q_INVOKABLE void setAmbientUpdatesEnabled(bool enabled);
 
     bool displayAmbient() const { return (m_currentDisplayState == QMceDisplay::DisplayOff) && ambientEnabled(); }
@@ -157,11 +159,15 @@ signals:
     void displayAboutToBeOff();
 
     void ambientEnabledChanged();
+    void ambientOffloadedChanged();
 
     void completedChanged();
 
 
 private slots:
+    void secondDisplayRegistered();
+    void secondDisplayUnregistered();
+    void secondDisplayPropertiesChanged(const QString &interface, const QVariantMap &changed, const QStringList &invalidated);
     void onHasContentChanged();
     void surfaceTitleChanged();
     void surfaceSetFullScreen(QWaylandOutput *output);
@@ -196,6 +202,10 @@ private:
     QQmlComponent *shaderEffectComponent();
 
     void scheduleAmbientUpdate();
+    void cancelAmbientUpdates();
+    void releaseAmbientOffload();
+    void setAmbientOffloaded(bool offloaded);
+    void watchSecondDisplay();
 
     static LipstickCompositor *m_instance;
 
@@ -230,6 +240,7 @@ private:
 
     Maemo::Timed::Interface *m_timedDbus;
     bool m_ambientModeEnabled;
+    bool m_ambientOffloaded = false;
 };
 
 #endif // LIPSTICKCOMPOSITOR_H

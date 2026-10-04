@@ -32,9 +32,21 @@
 
 #include <mce/dbus-names.h>
 #include <mce/mode-names.h>
+#include <QDBusConnection>
+#include <QDBusMessage>
+#include <QDBusPendingCallWatcher>
+#include <QDBusPendingReply>
+#include <QDBusServiceWatcher>
+#include <QDBusVariant>
 
 
 #define MCE_DISPLAY_LPM_SET_SUPPORTED "set_lpm_supported"
+
+static const char SecondDisplayService[] = "org.asteroid.SecondDisplay";
+static const char SecondDisplayPath[] = "/Display";
+static const char SecondDisplayInterface[] = "org.asteroid.SecondDisplay.Display";
+static const char AodOffloadActiveProperty[] = "AodOffloadActive";
+static const int ReleaseAodOffloadTimeoutMs = 1000;
 
 
 LipstickCompositor *LipstickCompositor::m_instance = 0;
@@ -105,6 +117,7 @@ LipstickCompositor::LipstickCompositor()
     {
       qWarning() << "invalid dbus interface:" << m_timedDbus->lastError();
     }
+    watchSecondDisplay();
 
     QTimer::singleShot(0, this, SLOT(initialize()));
 }
@@ -645,9 +658,95 @@ void LipstickCompositor::setAmbientEnabled(bool enabled)
     emit displayAmbientLeft();
 }
 
+void LipstickCompositor::watchSecondDisplay()
+{
+    QDBusConnection bus = QDBusConnection::sessionBus();
+    QDBusServiceWatcher *watcher = new QDBusServiceWatcher(SecondDisplayService, bus,
+        QDBusServiceWatcher::WatchForRegistration | QDBusServiceWatcher::WatchForUnregistration, this);
+    connect(watcher, &QDBusServiceWatcher::serviceRegistered, this, &LipstickCompositor::secondDisplayRegistered);
+    connect(watcher, &QDBusServiceWatcher::serviceUnregistered, this, &LipstickCompositor::secondDisplayUnregistered);
+    bus.connect(SecondDisplayService, SecondDisplayPath, "org.freedesktop.DBus.Properties", "PropertiesChanged",
+                this, SLOT(secondDisplayPropertiesChanged(QString, QVariantMap, QStringList)));
+    secondDisplayRegistered();
+}
+
+void LipstickCompositor::secondDisplayRegistered()
+{
+    QDBusMessage get = QDBusMessage::createMethodCall(SecondDisplayService, SecondDisplayPath,
+                                                      "org.freedesktop.DBus.Properties", "Get");
+    get << QString::fromLatin1(SecondDisplayInterface) << QString::fromLatin1(AodOffloadActiveProperty);
+    QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(QDBusConnection::sessionBus().asyncCall(get), this);
+    connect(watcher, &QDBusPendingCallWatcher::finished, this, [this](QDBusPendingCallWatcher *watcher) {
+        watcher->deleteLater();
+        const QDBusPendingReply<QDBusVariant> reply = *watcher;
+        if (!reply.isError()) {
+            setAmbientOffloaded(reply.value().variant().toBool());
+        }
+    });
+}
+
+void LipstickCompositor::secondDisplayUnregistered()
+{
+    setAmbientOffloaded(false);
+}
+
+void LipstickCompositor::secondDisplayPropertiesChanged(const QString &interface, const QVariantMap &changed, const QStringList &)
+{
+    if (interface == QLatin1String(SecondDisplayInterface) && changed.contains(AodOffloadActiveProperty)) {
+        setAmbientOffloaded(changed.value(AodOffloadActiveProperty).toBool());
+    }
+}
+
+void LipstickCompositor::setAmbientOffloaded(bool offloaded)
+{
+    if (m_ambientOffloaded == offloaded) {
+        return;
+    }
+    m_ambientOffloaded = offloaded;
+    emit ambientOffloadedChanged();
+    if (offloaded) {
+        cancelAmbientUpdates();
+    } else if (m_currentDisplayState == QMceDisplay::DisplayOff) {
+        scheduleAmbientUpdate();
+    }
+}
+
+void LipstickCompositor::releaseAmbientOffload()
+{
+    if (!m_ambientOffloaded) {
+        return;
+    }
+    QDBusMessage release = QDBusMessage::createMethodCall(SecondDisplayService, SecondDisplayPath,
+                                                          SecondDisplayInterface, "ReleaseAodOffload");
+    QDBusConnection::sessionBus().call(release, QDBus::Block, ReleaseAodOffloadTimeoutMs);
+    setAmbientOffloaded(false);
+}
+
+void LipstickCompositor::cancelAmbientUpdates()
+{
+    QMap<QString,QVariant> match;
+    match.insert("type", QVariant(QString("wakeup")));
+    QDBusReply< QList<QVariant> > reply = m_timedDbus->query_sync(match);
+    if (!reply.isValid()) {
+        qWarning() << "'query' call failed:" << m_timedDbus->lastError();
+        return;
+    }
+    for (const QVariant &value : reply.value()) {
+        bool ok = false;
+        uint cookie = value.toUInt(&ok);
+        if (ok) {
+            m_timedDbus->cancel_sync(cookie);
+        }
+    }
+}
+
 void LipstickCompositor::scheduleAmbientUpdate()
 {
     if (!ambientEnabled()) {
+        return;
+    }
+    if (m_ambientOffloaded) {
+        cancelAmbientUpdates();
         return;
     }
     QMap<QString,QVariant> match;
@@ -718,7 +817,7 @@ void LipstickCompositor::setAmbientUpdatesEnabled(bool enabled)
         if (m_currentDisplayState == QMceDisplay::DisplayOn) {
             return;
         }
-        if (!ambientEnabled()) {
+        if (!ambientEnabled() || m_ambientOffloaded) {
             return;
         }
     }
@@ -750,6 +849,9 @@ void LipstickCompositor::setUpdatesEnabled(bool enabled, bool inAmbientMode)
 
             scheduleAmbientUpdate();
         } else {
+            if (!inAmbientMode) {
+                releaseAmbientOffload();
+            }
             if (m_window->handle() && !inAmbientMode) {
                 QGuiApplication::platformNativeInterface()->nativeResourceForIntegration("DisplayOn");
             }
