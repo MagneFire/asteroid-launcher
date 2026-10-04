@@ -46,6 +46,7 @@
 #include "notificationsnoozer.h"
 #include "applauncher.h"
 #include "watchfacereloader.h"
+#include "aodfacebuilder.h"
 
 int main(int argc, char **argv)
 {
@@ -86,6 +87,9 @@ int main(int argc, char **argv)
     // it shows on the homescreen live, without a launcher restart.
     WatchfaceReloader *watchfaceReloader = new WatchfaceReloader(app.engine());
     app.engine()->rootContext()->setContextProperty("watchfaceReloader", watchfaceReloader);
+
+    AodFaceBuilder *aodFace = new AodFaceBuilder(app.engine());
+    app.engine()->rootContext()->setContextProperty("aodFace", aodFace);
 
     qmlRegisterType<AppLauncherBackground>("org.asteroid.launcher", 1, 0, "AppLauncherBackground");
     qmlRegisterType<GestureFilterArea>("org.asteroid.launcher", 1, 0, "GestureFilterArea");

@@ -5,14 +5,16 @@ set(SRC
 	gesturefilterarea.cpp
 	applauncher.cpp
 	notificationsnoozer.cpp
-	watchfacereloader.cpp)
+	watchfacereloader.cpp
+	aodfacebuilder.cpp)
 set(HEADERS
 	applauncherbackground.h
 	firstrun.h
 	gesturefilterarea.h
 	applauncher.h
 	notificationsnoozer.h
-	watchfacereloader.h)
+	watchfacereloader.h
+	aodfacebuilder.h)
 
 add_executable(asteroid-launcher ${SRC} ${HEADERS} resources-qml.qrc)
 

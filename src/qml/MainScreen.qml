@@ -62,6 +62,58 @@ Item {
     property var launcherColorOverride: false
 
     property var displayAmbient: Lipstick.compositor.displayAmbient
+    property Item aodWatchface: null
+    property bool aodFacePending: false
+    property bool aodFaceChanged: false
+    property bool aodDisplayOn: !Lipstick.compositor.displayAmbient
+    onAodWatchfaceChanged: { aodFaceChanged = true; scheduleAodFace() }
+
+    function scheduleAodFace() {
+        if (aodFace.supported && aodWatchface) aodFaceTimer.restart()
+    }
+
+    function publishAodFace() {
+        if (!aodFace.supported || !aodWatchface) return
+        aodFacePending = !aodDisplayOn || !visible
+        if (aodFacePending) return
+        displayAmbient = true
+        if (!aodFace.publish(aodWatchface, aodFaceChanged)) {
+            displayAmbient = Qt.binding(function() { return Lipstick.compositor.displayAmbient })
+            aodFaceTimer.restart()
+        }
+    }
+    onVisibleChanged: if (visible && aodFacePending) scheduleAodFace()
+
+    Timer {
+        id: aodFaceTimer
+        interval: 1500
+        onTriggered: publishAodFace()
+    }
+
+    Timer {
+        id: aodFaceRetry
+        interval: 61000
+        onTriggered: scheduleAodFace()
+    }
+
+    Connections {
+        target: aodFace
+        function onSupportedChanged() { scheduleAodFace() }
+        function onFinished(ok) {
+            displayAmbient = Qt.binding(function() { return Lipstick.compositor.displayAmbient })
+            if (ok) aodFaceChanged = false
+            else if (aodFace.supported) aodFaceRetry.restart()
+        }
+    }
+
+    Connections {
+        target: Lipstick.compositor
+        function onDisplayOn() {
+            aodDisplayOn = true
+            if (aodFace.supported && (aodFacePending || aodFace.stale())) scheduleAodFace()
+        }
+        function onDisplayAboutToBeOff() { aodDisplayOn = false }
+    }
 
     /* Background gradient colours handed to the wallpaper. While scrolling down
      * to the launcher (normalizedVerOffset in (0,1]) they fade from the default
@@ -209,6 +261,7 @@ Item {
         id: use12H
         key: "/org/asteroidos/settings/use-12h-format"
         defaultValue: false
+        onValueChanged: scheduleAodFace()
     }
 
     Timer {
@@ -315,6 +368,7 @@ Item {
         readonly property bool active: ready || nightstandDelayTimer.running
         readonly property bool ready: nightstandEnabled.value && mceChargerType.type != MceChargerType.None
         property int oldBrightness: 100
+        onActiveChanged: scheduleAodFace()
         onReadyChanged: {
             if (ready) {
                 if (nightstandDelayTimer.running) {
@@ -380,6 +434,7 @@ Item {
         id: centerPanel;
         Item {
             property bool nightstandWatchfaceActive: nightstandMode.active && nightstandUseCustomWatchface.value && watchfaceNightstandSource.value != watchFaceSource.value
+            Component.onCompleted: desktop.aodWatchface = Qt.binding(function() { return nightstandWatchfaceActive ? nightstandWatchfaceLoader.item : watchfaceLoader.item })
             Loader {
                 id: nightstandWatchfaceLoader
                 opacity: nightstandWatchfaceActive ? 1.0 : 0.0
