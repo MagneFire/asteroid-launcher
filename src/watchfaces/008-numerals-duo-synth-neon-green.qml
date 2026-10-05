@@ -16,6 +16,13 @@ import org.asteroid.utils
 Item {
     property string imgPath: "../watchfaces-img/numerals-duo-synth-neon-green-"
 
+    // Lets a co-processor draw this face while the main CPU sleeps: the digits are
+    // cut out of the images, the cells are the items that paint them on screen.
+    property var ambientDecomposition: ({
+        hours: { cells: [topLeftMask, topRightMask], images: imgPath + "%1.png", color: "#38FF12", invert: true },
+        minutes: { cells: [bottomLeftMask, bottomRightMask], images: imgPath + "%1.png", color: "#FFF100", invert: true }
+    })
+
     anchors.fill: parent
 
     Item {
@@ -191,6 +198,7 @@ Item {
             }
 
             OpacityMask {
+                id: topLeftMask
                 invert: true
                 anchors.fill: topLeft
                 source: greenColor
@@ -209,6 +217,7 @@ Item {
             }
 
             OpacityMask {
+                id: topRightMask
                 invert: true
                 anchors.fill: topRight
                 source: greenColor
@@ -227,6 +236,7 @@ Item {
             }
 
             OpacityMask {
+                id: bottomLeftMask
                 invert: true
                 anchors.fill: bottomLeft
                 source: whiteColor
@@ -245,6 +255,7 @@ Item {
             }
 
             OpacityMask {
+                id: bottomRightMask
                 invert: true
                 anchors.fill: bottomRight
                 source: whiteColor

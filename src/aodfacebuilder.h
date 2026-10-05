@@ -7,26 +7,20 @@
 #ifndef AODFACEBUILDER_H
 #define AODFACEBUILDER_H
 
+#include <QColor>
 #include <QDate>
+#include <QImage>
 #include <QObject>
 #include <QPointer>
 #include <QRectF>
 #include <QSharedPointer>
+#include <QStringList>
 #include <QTimer>
 #include <QVariantMap>
 
 class QQuickItem;
 class QQuickItemGrabResult;
 
-/*!
- * \brief Describes the current watchface to the second display daemon.
- *
- * Watches with a co-processor that draws the always-on display need the
- * face as a background image plus a digit strip and the positions of the
- * hour and minute digits. The builder finds the hour and minute Text items
- * of the loaded watchface, renders their font into a strip, grabs the rest
- * of the face as the background and hands the result to the daemon.
- */
 class AodFaceBuilder : public QObject
 {
     Q_OBJECT
@@ -50,19 +44,34 @@ private slots:
     void onPropertiesChanged(const QString &interface, const QVariantMap &changed, const QStringList &invalidated);
 
 private:
-    struct TimeLabel
+    struct Number
     {
-        QPointer<QQuickItem> item;
-        bool wasVisible = true;
+        QList<QPointer<QQuickItem>> items;
+        QList<bool> wasVisible;
+        QPointer<QQuickItem> label;
+        QStringList images;
+        QColor color;
+        bool invert = false;
     };
-    enum class LabelSearch { Found, None, Ambiguous };
+    struct Strip
+    {
+        QImage image;
+        QPoint position;
+    };
+    enum class Search { Found, None, Ambiguous, Invalid };
 
     void queryCapabilities();
     void setSupported(bool supported);
-    LabelSearch findTimeLabels(QQuickItem *watchface, TimeLabel *hours, TimeLabel *minutes) const;
+    Search readDeclaration(QQuickItem *watchface, Number *hours, Number *minutes) const;
+    bool readNumber(QQuickItem *watchface, const QVariant &value, Number *number) const;
+    Search findTimeLabels(QQuickItem *watchface, Number *hours, Number *minutes) const;
+    void hideNumbers();
+    void restoreNumbers();
     void onGrabReady();
     void onGrabTimeout();
-    QRectF labelRect(QQuickItem *label) const;
+    QRectF itemRect(QQuickItem *item) const;
+    bool isGreyNumber(const Number &number) const;
+    Strip renderStrip(const Number &number, const QImage &background, bool color) const;
     void clearFace();
     void finish(bool ok);
 
@@ -72,8 +81,8 @@ private:
     QString m_directory;
     QString m_acceptedDirectory;
     QPointer<QQuickItem> m_watchface;
-    TimeLabel m_hours;
-    TimeLabel m_minutes;
+    Number m_hours;
+    Number m_minutes;
     QSharedPointer<QQuickItemGrabResult> m_grab;
     QTimer m_grabTimeout;
     QDate m_grabbedDate;

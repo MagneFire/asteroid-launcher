@@ -17,12 +17,16 @@
 #include <QDateTime>
 #include <QDebug>
 #include <QDir>
+#include <QFile>
 #include <QFont>
 #include <QFontMetricsF>
 #include <QImage>
 #include <QPainter>
 #include <QQuickItem>
 #include <QQuickItemGrabResult>
+#include <QJSValue>
+#include <QQmlContext>
+#include <QUrl>
 #include <QStandardPaths>
 #include <QtMath>
 #include <limits>
@@ -33,6 +37,7 @@ const char SecondDisplayService[] = "org.asteroid.SecondDisplay";
 const char SecondDisplayPath[] = "/Display";
 const char SecondDisplayInterface[] = "org.asteroid.SecondDisplay.Display";
 const char CapabilitiesProperty[] = "Capabilities";
+const char DeclarationProperty[] = "ambientDecomposition";
 constexpr uint AodOffloadCapability = 1u << 7;
 constexpr int Glyphs = 10;
 constexpr int GreyTolerance = 8;
@@ -147,36 +152,6 @@ QColor labelColor(QQuickItem *item)
     return item->property("color").value<QColor>();
 }
 
-QImage renderDigits(QQuickItem *label, const QImage &background, const QRectF &rect, bool color)
-{
-    QFont font = label->property("font").value<QFont>();
-    const QFontMetricsF metrics(font);
-    qreal cellWidth = 0;
-    for (int digit = 0; digit < Glyphs; ++digit)
-        cellWidth = qMax(cellWidth, metrics.horizontalAdvance(QString::number(digit)));
-    const int glyphWidth = qCeil(cellWidth);
-    const int glyphHeight = qCeil(label->height());
-    if (glyphWidth <= 0 || glyphHeight <= 0)
-        return QImage();
-
-    const QPoint sample = rect.center().toPoint();
-    const QRgb behind = background.valid(sample) ? background.pixel(sample) : qRgb(0, 0, 0);
-    QImage digits(glyphWidth, glyphHeight * Glyphs, QImage::Format_ARGB32);
-    digits.fill(Qt::transparent);
-    QPainter painter(&digits);
-    if (color)
-        font.setStyleStrategy(QFont::NoAntialias);
-    painter.setFont(font);
-    painter.setPen(labelColor(label));
-    for (int digit = 0; digit < Glyphs; ++digit)
-        painter.drawText(QRectF(0, digit * glyphHeight, glyphWidth, glyphHeight), Qt::AlignCenter, QString::number(digit));
-    painter.end();
-    flattenEdges(&digits, behind);
-    if (color)
-        quantizeToPalette(&digits);
-    return digits;
-}
-
 QList<QQuickItem *> itemsWithText(const QList<QQuickItem *> &texts, const QStringList &wanted)
 {
     QList<QQuickItem *> matches;
@@ -250,8 +225,7 @@ bool AodFaceBuilder::stale() const
     return m_grabbedDate != now.date() || (m_grabbedHour < 12) != (now.time().hour() < 12);
 }
 
-AodFaceBuilder::LabelSearch AodFaceBuilder::findTimeLabels(QQuickItem *watchface, TimeLabel *hours,
-                                                            TimeLabel *minutes) const
+AodFaceBuilder::Search AodFaceBuilder::findTimeLabels(QQuickItem *watchface, Number *hours, Number *minutes) const
 {
     const QDateTime now = QDateTime::currentDateTime();
     QList<QQuickItem *> texts;
@@ -260,15 +234,77 @@ AodFaceBuilder::LabelSearch AodFaceBuilder::findTimeLabels(QQuickItem *watchface
     const QList<QQuickItem *> minuteItems = itemsWithText(texts, minuteTexts(now));
     if (hourItems.isEmpty() || minuteItems.isEmpty()) {
         qInfo() << "AOD face: found" << hourItems.size() << "hour and" << minuteItems.size() << "minute labels";
-        return LabelSearch::None;
+        return Search::None;
     }
     if (hourItems.size() != 1 || minuteItems.size() != 1 || hourItems.first() == minuteItems.first()) {
         qInfo() << "AOD face: ambiguous labels," << hourItems.size() << "hour and" << minuteItems.size() << "minute";
-        return LabelSearch::Ambiguous;
+        return Search::Ambiguous;
     }
-    hours->item = hourItems.first();
-    minutes->item = minuteItems.first();
-    return LabelSearch::Found;
+    hours->label = hourItems.first();
+    hours->items = {hourItems.first()};
+    minutes->label = minuteItems.first();
+    minutes->items = {minuteItems.first()};
+    return Search::Found;
+}
+
+bool AodFaceBuilder::readNumber(QQuickItem *watchface, const QVariant &value, Number *number) const
+{
+    if (auto *item = qobject_cast<QQuickItem *>(value.value<QObject *>())) {
+        if (!item->inherits("QQuickText"))
+            return false;
+        number->label = item;
+        number->items = {item};
+        return true;
+    }
+    const QVariantMap map = value.toMap();
+    const QVariantList cells = map.value("cells").toList();
+    for (const QVariant &cell : cells) {
+        auto *item = qobject_cast<QQuickItem *>(cell.value<QObject *>());
+        if (!item)
+            return false;
+        number->items.append(item);
+    }
+    if (number->items.isEmpty() || number->items.size() > 2)
+        return false;
+    const QVariant images = map.value("images");
+    QStringList sources;
+    if (images.canConvert<QStringList>() && images.toStringList().size() == Glyphs) {
+        sources = images.toStringList();
+    } else {
+        const QString pattern = images.toString();
+        if (!pattern.contains("%1"))
+            return false;
+        for (int digit = 0; digit < Glyphs; ++digit)
+            sources.append(pattern.arg(digit));
+    }
+    QQmlContext *context = qmlContext(watchface);
+    for (const QString &source : sources) {
+        const QUrl url = context ? context->resolvedUrl(QUrl(source)) : QUrl(source);
+        const QString path = url.isLocalFile() ? url.toLocalFile() : (url.scheme() == "qrc" ? ":" + url.path() : url.toString());
+        if (!QFile::exists(path))
+            return false;
+        number->images.append(path);
+    }
+    number->color = map.value("color", QColor(Qt::white)).value<QColor>();
+    number->invert = map.value("invert").toBool();
+    return true;
+}
+
+AodFaceBuilder::Search AodFaceBuilder::readDeclaration(QQuickItem *watchface, Number *hours, Number *minutes) const
+{
+    QVariant declaration = watchface->property(DeclarationProperty);
+    if (!declaration.isValid())
+        return Search::None;
+    if (declaration.canConvert<QJSValue>())
+        declaration = declaration.value<QJSValue>().toVariant();
+    const QVariantMap map = declaration.toMap();
+    if (map.isEmpty())
+        return Search::None;
+    if (!readNumber(watchface, map.value("hours"), hours) || !readNumber(watchface, map.value("minutes"), minutes)) {
+        qWarning() << "AOD face: the watchface's" << DeclarationProperty << "is not usable";
+        return Search::Invalid;
+    }
+    return Search::Found;
 }
 
 bool AodFaceBuilder::publish(QQuickItem *watchface, bool clearOnFailure)
@@ -280,28 +316,51 @@ bool AodFaceBuilder::publish(QQuickItem *watchface, bool clearOnFailure)
         finish(false);
         return true;
     }
-    const LabelSearch search = findTimeLabels(watchface, &m_hours, &m_minutes);
-    if (search != LabelSearch::Found) {
-        if (search == LabelSearch::None && clearOnFailure)
+    Search search = readDeclaration(watchface, &m_hours, &m_minutes);
+    if (search == Search::None) {
+        m_hours = Number();
+        m_minutes = Number();
+        search = findTimeLabels(watchface, &m_hours, &m_minutes);
+    }
+    if (search != Search::Found) {
+        if (search != Search::Ambiguous && clearOnFailure)
             clearFace();
         finish(false);
         return true;
     }
     m_watchface = watchface;
-    for (TimeLabel *label : {&m_hours, &m_minutes}) {
-        label->wasVisible = label->item->isVisible();
-        label->item->setVisible(false);
-    }
+    hideNumbers();
     m_grab = watchface->grabToImage();
     if (!m_grab) {
-        for (TimeLabel *label : {&m_hours, &m_minutes})
-            label->item->setVisible(label->wasVisible);
+        restoreNumbers();
         finish(false);
         return true;
     }
     connect(m_grab.data(), &QQuickItemGrabResult::ready, this, &AodFaceBuilder::onGrabReady);
     m_grabTimeout.start();
     return true;
+}
+
+void AodFaceBuilder::hideNumbers()
+{
+    for (Number *number : {&m_hours, &m_minutes}) {
+        number->wasVisible.clear();
+        for (const QPointer<QQuickItem> &item : number->items) {
+            number->wasVisible.append(item && item->isVisible());
+            if (item)
+                item->setVisible(false);
+        }
+    }
+}
+
+void AodFaceBuilder::restoreNumbers()
+{
+    for (Number *number : {&m_hours, &m_minutes}) {
+        for (int i = 0; i < number->items.size() && i < number->wasVisible.size(); ++i) {
+            if (number->items[i])
+                number->items[i]->setVisible(number->wasVisible[i]);
+        }
+    }
 }
 
 void AodFaceBuilder::onGrabTimeout()
@@ -311,16 +370,98 @@ void AodFaceBuilder::onGrabTimeout()
     qWarning() << "AOD face: the watchface grab did not complete";
     disconnect(m_grab.data(), nullptr, this, nullptr);
     m_grab.reset();
-    for (TimeLabel *label : {&m_hours, &m_minutes}) {
-        if (label->item)
-            label->item->setVisible(label->wasVisible);
-    }
+    restoreNumbers();
     finish(false);
 }
 
-QRectF AodFaceBuilder::labelRect(QQuickItem *label) const
+QRectF AodFaceBuilder::itemRect(QQuickItem *item) const
 {
-    return m_watchface->mapRectFromItem(label, QRectF(0, 0, label->width(), label->height()));
+    return m_watchface->mapRectFromItem(item, QRectF(0, 0, item->width(), item->height()));
+}
+
+bool AodFaceBuilder::isGreyNumber(const Number &number) const
+{
+    const QColor color = number.label ? labelColor(number.label) : number.color;
+    return isGrey(color.rgb());
+}
+
+AodFaceBuilder::Strip AodFaceBuilder::renderStrip(const Number &number, const QImage &background, bool color) const
+{
+    Strip strip;
+    for (const QPointer<QQuickItem> &item : number.items) {
+        if (!item)
+            return strip;
+    }
+    const QRectF first = itemRect(number.items.first());
+    const QPoint sample = first.center().toPoint();
+    const QRgb behind = background.valid(sample) ? background.pixel(sample) : qRgb(0, 0, 0);
+
+    if (number.label) {
+        QFont font = number.label->property("font").value<QFont>();
+        const QFontMetricsF metrics(font);
+        qreal cellWidth = 0;
+        for (int digit = 0; digit < Glyphs; ++digit)
+            cellWidth = qMax(cellWidth, metrics.horizontalAdvance(QString::number(digit)));
+        const int glyphWidth = qCeil(cellWidth);
+        const int glyphHeight = qCeil(first.height());
+        if (glyphWidth <= 0 || glyphHeight <= 0)
+            return strip;
+        QImage digits(glyphWidth, glyphHeight * Glyphs, QImage::Format_ARGB32);
+        digits.fill(Qt::transparent);
+        QPainter painter(&digits);
+        if (color)
+            font.setStyleStrategy(QFont::NoAntialias);
+        painter.setFont(font);
+        painter.setPen(labelColor(number.label));
+        for (int digit = 0; digit < Glyphs; ++digit)
+            painter.drawText(QRectF(0, digit * glyphHeight, glyphWidth, glyphHeight), Qt::AlignCenter, QString::number(digit));
+        painter.end();
+        flattenEdges(&digits, behind);
+        if (color)
+            quantizeToPalette(&digits);
+        strip.image = digits;
+        strip.position = QPoint(qRound(first.center().x() - glyphWidth), qRound(first.top()));
+        return strip;
+    }
+
+    const int glyphWidth = number.items.size() > 1 ? qRound(itemRect(number.items[1]).left() - first.left())
+                                                   : qRound(first.width());
+    const int glyphHeight = qRound(first.height());
+    if (glyphWidth <= 0 || glyphHeight <= 0)
+        return strip;
+    QImage digits(glyphWidth, glyphHeight * Glyphs, QImage::Format_ARGB32);
+    digits.fill(Qt::transparent);
+    const QRgb tint = number.color.rgb();
+    for (int digit = 0; digit < Glyphs; ++digit) {
+        QImage glyph(number.images.value(digit));
+        if (glyph.isNull())
+            return Strip();
+        glyph = glyph.convertToFormat(QImage::Format_ARGB32)
+                    .scaled(qRound(first.width()), glyphHeight, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        const int left = (qRound(first.width()) - glyph.width()) / 2;
+        const int top = digit * glyphHeight + (glyphHeight - glyph.height()) / 2;
+        for (int y = 0; y < glyph.height(); ++y) {
+            const QRgb *source = reinterpret_cast<const QRgb *>(glyph.constScanLine(y));
+            QRgb *target = reinterpret_cast<QRgb *>(digits.scanLine(top + y));
+            for (int x = 0; x < glyph.width(); ++x) {
+                int coverage = qAlpha(source[x]);
+                if (number.invert)
+                    coverage = 255 - coverage;
+                if (color && coverage < 128)
+                    coverage = 0;
+                else if (color)
+                    coverage = 255;
+                if (coverage > 0 && left + x >= 0 && left + x < glyphWidth)
+                    target[left + x] = qRgba(qRed(tint), qGreen(tint), qBlue(tint), coverage);
+            }
+        }
+    }
+    flattenEdges(&digits, behind);
+    if (color)
+        quantizeToPalette(&digits);
+    strip.image = digits;
+    strip.position = QPoint(qRound(first.left()), qRound(first.top()));
+    return strip;
 }
 
 void AodFaceBuilder::onGrabReady()
@@ -328,11 +469,8 @@ void AodFaceBuilder::onGrabReady()
     m_grabTimeout.stop();
     QImage background = m_grab->image().convertToFormat(QImage::Format_ARGB32);
     m_grab.reset();
-    for (TimeLabel *label : {&m_hours, &m_minutes}) {
-        if (label->item)
-            label->item->setVisible(label->wasVisible);
-    }
-    if (!m_watchface || !m_hours.item || !m_minutes.item)
+    restoreNumbers();
+    if (!m_watchface)
         return finish(false);
 
     QImage opaque(background.size(), QImage::Format_ARGB32);
@@ -343,13 +481,10 @@ void AodFaceBuilder::onGrabReady()
     }
     background = opaque;
 
-    const QRectF hourRect = labelRect(m_hours.item);
-    const QRectF minuteRect = labelRect(m_minutes.item);
-    const bool color = !isGrey(labelColor(m_hours.item).rgb()) || !isGrey(labelColor(m_minutes.item).rgb())
-        || !isGreyImage(background);
-    const QImage hourDigits = renderDigits(m_hours.item, background, hourRect, color);
-    const QImage minuteDigits = renderDigits(m_minutes.item, background, minuteRect, color);
-    if (hourDigits.isNull() || minuteDigits.isNull())
+    const bool color = !isGreyNumber(m_hours) || !isGreyNumber(m_minutes) || !isGreyImage(background);
+    const Strip hours = renderStrip(m_hours, background, color);
+    const Strip minutes = renderStrip(m_minutes, background, color);
+    if (hours.image.isNull() || minutes.image.isNull())
         return finish(false);
     if (color)
         quantizeToPalette(&background);
@@ -360,7 +495,7 @@ void AodFaceBuilder::onGrabReady()
     const QString backgroundPath = directory + "/background.png";
     const QString digitsPath = directory + "/digits.png";
     const QString minuteDigitsPath = directory + "/minute-digits.png";
-    if (!background.save(backgroundPath) || !hourDigits.save(digitsPath) || !minuteDigits.save(minuteDigitsPath))
+    if (!background.save(backgroundPath) || !hours.image.save(digitsPath) || !minutes.image.save(minuteDigitsPath))
         return finish(false);
 
     QVariantMap description;
@@ -368,10 +503,10 @@ void AodFaceBuilder::onGrabReady()
     description["digits"] = digitsPath;
     description["minuteDigits"] = minuteDigitsPath;
     description["color"] = color;
-    description["hoursX"] = qRound(hourRect.center().x() - hourDigits.width());
-    description["hoursY"] = qRound(hourRect.top());
-    description["minutesX"] = qRound(minuteRect.center().x() - minuteDigits.width());
-    description["minutesY"] = qRound(minuteRect.top());
+    description["hoursX"] = hours.position.x();
+    description["hoursY"] = hours.position.y();
+    description["minutesX"] = minutes.position.x();
+    description["minutesY"] = minutes.position.y();
 
     QDBusMessage set = QDBusMessage::createMethodCall(SecondDisplayService, SecondDisplayPath, SecondDisplayInterface, "SetFace");
     set << description;
@@ -408,8 +543,8 @@ void AodFaceBuilder::finish(bool ok)
         m_directory.clear();
     }
     m_watchface.clear();
-    m_hours = TimeLabel();
-    m_minutes = TimeLabel();
+    m_hours = Number();
+    m_minutes = Number();
     m_busy = false;
     emit finished(ok);
 }

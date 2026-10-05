@@ -12,6 +12,9 @@ import QtQuick.Shapes
 Item {
     anchors.fill: parent
 
+    // Lets a co-processor draw this face while the main CPU sleeps.
+    property var ambientDecomposition: ({ hours: hourLabel, minutes: minuteLabel })
+
     Item {
         id: root
 
